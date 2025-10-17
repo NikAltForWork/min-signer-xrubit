@@ -7,7 +7,7 @@ const fastify = new Fastify({
 })
 const key = new KeyService();
 
-fastify.get('/', async function handle(request, reply) {
+fastify.get('/ping', async function handle(request, reply) {
   return {
     status: 'online' 
   }
@@ -65,9 +65,19 @@ async function createCryptoService(network, currency, type) {
   }
 }
 
-try {
-  await fastify.listen({port: 3000})
-} catch (error) {
-  console.log(error)
-  process.exit(1);
+async function startServer() {
+  try {
+    await fastify.listen({ 
+      port: 3000, 
+      host: '0.0.0.0'  
+    });
+    console.log('Server started successfully on port 3000');
+  } catch (error) {
+    console.error('Server startup error:', error);
+    
+    console.log('Restarting server in 5 seconds...');
+    setTimeout(startServer, 5000);
+  }
 }
+
+startServer();
