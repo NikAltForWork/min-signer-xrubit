@@ -26,8 +26,8 @@ fastify.post('/keys/:network/:currency/:type', async function handle(request, re
 fastify.get('/keys/address/:network/:currency/:type', async function handle(request, reply) {
   const { network, currency, type } = request.params;
   const service = await createCryptoService(network, currency, type);
-  const response = service.getAccount();
-  return response.address;
+  const response = await service.getAccount();
+  return { address: response.address };
 });
 
 fastify.get('/keys/stored/:network/:currency/:type', async function handle(request, reply) {
@@ -35,7 +35,6 @@ fastify.get('/keys/stored/:network/:currency/:type', async function handle(reque
   const response = await key.isStored(network, currency, type);
   return response;
 });
-
 
 fastify.post('/transactions/:network/:currency/:type', async function handle(request, reply) {
   try {
@@ -81,7 +80,7 @@ async function createCryptoService(network, currency, type) {
   const serviceKey = `${network}:${currency}`.toLowerCase();
 
   switch(serviceKey) {
-    case 'tron:usdt':
+    case 'trc20:usdttrc20':
       const mnemonic = await key.getKey(network, currency, type);
       console.log('Retrieved mnemonic:', mnemonic);
       return new TronUSDTService(mnemonic);

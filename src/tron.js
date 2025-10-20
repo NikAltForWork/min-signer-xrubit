@@ -6,7 +6,7 @@ class TronUSDTService {
   constructor(mnemonic) {
     console.log('TronService initialized with mnemonic:', mnemonic ? 'PRESENT' : 'MISSING');
     console.log('Mnemonic length:', mnemonic ? mnemonic.length : 0);
-    
+
     this.mnemonic = mnemonic;
     this.tronWeb = new TronWeb({
       fullHost: 'https://api.shasta.trongrid.io'
@@ -14,9 +14,9 @@ class TronUSDTService {
     this.USDT_CONTRACT_ADDRESS = 'TG3XXyExBkPp9nzdajDZsozEu4BkaSJozs';
   }
 
-  getAccount(accountIndex = 0) {
+ async getAccount(accountIndex = 0) {
     console.log('Getting account with mnemonic:', this.mnemonic ? 'PRESENT' : 'MISSING');
-    
+
     if (!this.mnemonic) {
       throw new Error('Mnemonic phrase is missing');
     }
@@ -27,17 +27,17 @@ class TronUSDTService {
     }
 
     console.log('Mnemonic is valid, generating account...');
-    
+
     const seed = bip39.mnemonicToSeedSync(this.mnemonic);
     const hdNode = HDNodeWallet.fromSeed(seed);
     const tronPath = `m/44'/195'/${accountIndex}'/0/0`;
-    
+
     const wallet = hdNode.derivePath(tronPath);
     const privateKey = wallet.privateKey.slice(2);
     const tronAddress = this.tronWeb.address.fromPrivateKey(privateKey);
-    
+
     console.log('Generated account:', tronAddress);
-    
+
     return {
       address: tronAddress,
       privateKey: privateKey,
@@ -48,16 +48,16 @@ class TronUSDTService {
   async createAndSignTransfer(params) {
     try {
       const { to, amount, accountIndex = 0 } = params;
-      
+
       console.log('Creating transfer to:', to, 'amount:', amount);
-      
+
       // if (!this.validateAddress(to)) {
       //   throw new Error(`Invalid recipient address: ${to}`);
       // }
 
-      const account = this.getAccount(accountIndex);
+      const account = await this.getAccount(accountIndex);
       console.log('Using account:', account.address);
-      
+
       const signedTronWeb = new TronWeb({
         fullHost: 'https://api.shasta.trongrid.io',
         privateKey: account.privateKey
@@ -65,9 +65,9 @@ class TronUSDTService {
 
       const contract = await signedTronWeb.contract().at(this.USDT_CONTRACT_ADDRESS);
       const amountInSun = signedTronWeb.toSun(amount);
-      
+
       console.log('Calling contract transfer...');
-      
+
       const transaction = await contract.transfer(
         to,
         amountInSun
@@ -76,11 +76,10 @@ class TronUSDTService {
         feeLimit: 100000000,
         shouldPollResponse: false
       });
-
-      console.log('Transaction created successfully:', transaction.txID);
+      console.log('Transaction created successfully:', transaction.txId);
 
       return {
-        txId: transaction.txID,
+        txId: transaction.txId,
         from: account.address,
         to: to,
         amount: amount,
@@ -90,7 +89,7 @@ class TronUSDTService {
 
     } catch (error) {
       console.error('Transaction error details:', error);
-      throw new Error(`Failed to create and sign transaction: ${error.message}`);
+     // throw new Error(`Failed to create and sign transaction: ${error.message}`); закоментированно пока я не пойму куда делся TrId
     }
   }
 
@@ -98,7 +97,7 @@ class TronUSDTService {
     try {
       const trxBalance = await this.tronWeb.trx.getBalance(address);
       const usdtBalance = await this.getUSDTBalance(address);
-      
+
       return {
         trx: this.tronWeb.fromSun(trxBalance),
         usdt: usdtBalance
