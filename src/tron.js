@@ -106,16 +106,38 @@ class TronUSDTService {
       throw new Error(`Failed to get balance: ${error.message}`);
     }
   }
-
+/**
   async getUSDTBalance(address) {
     try {
       const contract = await this.tronWeb.contract().at(this.USDT_CONTRACT_ADDRESS);
       const balance = await contract.balanceOf(address).call();
       return this.tronWeb.fromSun(balance);
     } catch (error) {
+      console.error(error);
       return '0';
     }
   }
+**/
+
+  async getUSDTBalance(address) {
+   try {
+     const response = await fetch(`https://api.shasta.trongrid.io/v1/accounts/${address}`);
+     const data_u = await response.json();
+
+    const trc20 = data_u.data[0].trc20;
+
+    for (const item of trc20) {
+        const key = Object.keys(item)[0];
+        if (key === this.USDT_CONTRACT_ADDRESS) {
+            return item[key] / 1000000;
+        }
+    }
+     return '0';
+   } catch (error) {
+     console.error('Error fetching balance from TronGrid:', error);
+     return '0';
+   }
+ }
 
   validateAddress(address) {
     return this.tronWeb.isAddress(address);
