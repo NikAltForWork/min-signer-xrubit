@@ -4,6 +4,7 @@ services:
       context: .
       dockerfile: Dockerfile
     container_name: signer-service-prod
+    env_file: .env
     command: node server.js
     ports:
       - "3001:3000"

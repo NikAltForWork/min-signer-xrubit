@@ -19,6 +19,16 @@ fastify.post('/keys/:network/:currency/:type', async function handle(request, re
     xpub: request.body.xpub,
     mnemonic: request.body.mnemonic
   }
+  const response = await key.storeEncrypt(network, currency, type, data.xpub, data.mnemonic);
+  return response;
+});
+
+fastify.post('/keys/unsafe/:network/:currency/:type', async function handle(request, reply) {
+  const { network, currency, type } = request.params;
+  const data = {
+    xpub: request.body.xpub,
+    mnemonic: request.body.mnemonic
+  }
   const response = await key.store(network, currency, type, data.xpub, data.mnemonic);
   return response;
 });
@@ -50,7 +60,7 @@ fastify.post('/transactions/:network/:currency/:type', async function handle(req
       accountIndex: 0
     });
 
-    return { data: id.txId };
+    return { data: result };
 
   } catch (error) {
     console.error('Transaction error:', error);
@@ -81,7 +91,7 @@ async function createCryptoService(network, currency, type) {
 
   switch(serviceKey) {
     case 'trc20:usdttrc20':
-      const mnemonic = await key.getKey(network, currency, type);
+      const mnemonic = await key.decryptKey(network, currency, type);
       console.log('Retrieved mnemonic:', mnemonic);
       return new TronUSDTService(mnemonic);
     default:
