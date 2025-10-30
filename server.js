@@ -1,6 +1,7 @@
 import Fastify from "fastify";
 import KeyService from "./src/keys.js";
-import TronUSDTService from "./src/tron.js";
+import USDTService from "./src/Tron/USDTService.js";
+import TronService from "./src/Tron/TronService.js";
 
 const fastify = new Fastify({
   logger: true
@@ -76,7 +77,7 @@ fastify.post('/balance/:network/:currency/:type', async function handle(request,
         const { address } = request.body;
         const { network, currency, type } = request.params;
         const service = await createCryptoService(network, currency, type);
-        const result = service.getBalance(address);
+        const result = await service.getBalance(address);
         return result;
     } catch(error) {
         return reply.status(500).send({
@@ -91,9 +92,11 @@ async function createCryptoService(network, currency, type) {
 
   switch(serviceKey) {
     case 'trc20:usdttrc20':
-      const mnemonic = await key.decryptKey(network, currency, type);
-      console.log('Retrieved mnemonic:', mnemonic);
-      return new TronUSDTService(mnemonic);
+      var mnemonic = await key.decryptKey(network, currency, type);
+      return new USDTService(mnemonic);
+    case 'trc20:tron':
+      var mnemonic = await key.decryptKey(network, currency, type);
+      return new TronService(mnemonic);
     default:
       throw new Error(`Unsupported network/currency: ${network}/${currency}`);
   }

@@ -1,8 +1,9 @@
 const TronWeb = require('tronweb');
 const bip39 = require('bip39');
 const { HDNodeWallet } = require('ethers');
+require('dotenv').config();
 
-class TronUSDTService {
+class TronBasicService {
   constructor(mnemonic) {
     console.log('TronService initialized with mnemonic:', mnemonic ? 'PRESENT' : 'MISSING');
     console.log('Mnemonic length:', mnemonic ? mnemonic.length : 0);
@@ -11,7 +12,6 @@ class TronUSDTService {
     this.tronWeb = new TronWeb({
       fullHost: 'https://api.shasta.trongrid.io'
     });
-    this.USDT_CONTRACT_ADDRESS = 'TG3XXyExBkPp9nzdajDZsozEu4BkaSJozs';
   }
 
  async getAccount(accountIndex = 0) {
@@ -63,7 +63,7 @@ class TronUSDTService {
         privateKey: account.privateKey
       });
 
-      const contract = await signedTronWeb.contract().at(this.USDT_CONTRACT_ADDRESS);
+      const contract = await signedTronWeb.contract().at(this.address);
       const amountInSun = signedTronWeb.toSun(amount);
 
       console.log('Calling contract transfer...');
@@ -152,4 +152,4 @@ class TronUSDTService {
   }
 }
 
-module.exports = TronUSDTService;
+module.exports = TronBasicService;
