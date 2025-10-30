@@ -2,7 +2,7 @@ import Fastify from "fastify";
 import KeyService from "./src/keys.js";
 import USDTService from "./src/Tron/USDTService.js";
 import TronService from "./src/Tron/TronService.js";
-
+import EtheriumService from "./src/Ether/EtheriumService.js";
 const fastify = new Fastify({
   logger: true
 })
@@ -97,6 +97,9 @@ async function createCryptoService(network, currency, type) {
     case 'trc20:tron':
       var mnemonic = await key.decryptKey(network, currency, type);
       return new TronService(mnemonic);
+    case 'ether:etherium':
+      var mnemonic = await key.decryptKey(network, currency, type);
+      return new EtheriumService(mnemonic);
     default:
       throw new Error(`Unsupported network/currency: ${network}/${currency}`);
   }

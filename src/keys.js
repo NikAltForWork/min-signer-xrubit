@@ -6,7 +6,6 @@ require('dotenv').config();
 const key = process.env.APP_KEY;
 const algorithm = process.env.ALGORITHM;
 const iv_length = parseInt(process.env.IV_LENGTH);
-const algoritm = 'aes-256-gcm';
 
 class KeyService
 {
@@ -16,26 +15,26 @@ class KeyService
   try {
     const storage_path = path.join('storage', network, currency, type);
     const file_path = path.join(storage_path, 'key_encrypted.json');
-    
+
     const iv = crypto.randomBytes(iv_length);
-    
+
     const dataToEncrypt = JSON.stringify({
       xpub: xpub,
       mnemonic: mnemonic
     });
 
     const cipher = crypto.createCipheriv(algorithm, key, iv);
-    
+
     let encrypted = cipher.update(dataToEncrypt, 'utf8', 'hex');
     encrypted += cipher.final('hex');
-    
+
     const authTag = cipher.getAuthTag();
 
     const encryptedData = {
       iv: iv.toString('hex'),
       data: encrypted,
       tag: authTag.toString('hex'),
-      algorithm: algoritm,
+      algorithm: algorithm,
       timestamp: new Date().toISOString()
     };
 
@@ -43,33 +42,33 @@ class KeyService
     await fs.writeFile(file_path, JSON.stringify(encryptedData, null, 2));
 
     return true;
-  
+
     } catch(error) {
     console.error('Encryption error:', error.message);
-    throw error; 
-    } 
-  } 
+    throw error;
+    }
+  }
   async decryptKey(network, currency, type) {
   try {
     const file_path = path.join('storage', network, currency, type, 'key_encrypted.json');
-    
+
     const encryptedData = JSON.parse(await fs.readFile(file_path, 'utf8'));
-    
+
     const decipher = crypto.createDecipheriv(
-      encryptedData.algorithm, 
-      key, 
+      encryptedData.algorithm,
+      key,
       Buffer.from(encryptedData.iv, 'hex')
     );
-    
+
     decipher.setAuthTag(Buffer.from(encryptedData.tag, 'hex'));
-    
+
     let decrypted = decipher.update(encryptedData.data, 'hex', 'utf8');
     decrypted += decipher.final('utf8');
-    
+
     const data = await JSON.parse(decrypted);
 
     return data.mnemonic;
-    
+
   } catch(error) {
     console.error('Decryption error:', error.message);
     throw error;

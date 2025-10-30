@@ -9,8 +9,9 @@ class TronBasicService {
     console.log('Mnemonic length:', mnemonic ? mnemonic.length : 0);
 
     this.mnemonic = mnemonic;
+    this.network = process.env.TRON_NETWORK;
     this.tronWeb = new TronWeb({
-      fullHost: 'https://api.shasta.trongrid.io'
+      fullHost: process.env.TRON_NETWORK,
     });
   }
 
@@ -59,7 +60,7 @@ class TronBasicService {
       console.log('Using account:', account.address);
 
       const signedTronWeb = new TronWeb({
-        fullHost: 'https://api.shasta.trongrid.io',
+        fullHost: this.network,
         privateKey: account.privateKey
       });
 

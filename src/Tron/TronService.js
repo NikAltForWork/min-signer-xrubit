@@ -3,6 +3,10 @@ const TronBasicService = require('./TronBasicService');
 
 class TronService extends TronBasicService
 {
+    constructor(mnemonic) {
+        super(mnemonic);
+    }
+
     async createAndSignTransfer(params) {
     try {
       const { to, amount, accountIndex = 0 } = params;
