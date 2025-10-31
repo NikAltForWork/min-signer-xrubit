@@ -1,5 +1,5 @@
 const TronWeb = require('tronweb');
-const TronBasicService = require('./TronBasicService');
+const TronBasicService = require('../../Core/TronBasicService');
 
 class TronService extends TronBasicService
 {

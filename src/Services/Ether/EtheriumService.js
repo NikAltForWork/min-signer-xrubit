@@ -1,4 +1,4 @@
-const EtherBasicService = require('./EtherBasicService.js');
+const EtherBasicService = require('../../Core/EtherBasicService');
 class EtheriumService extends EtherBasicService
 {
   constructor(mnemonic) {

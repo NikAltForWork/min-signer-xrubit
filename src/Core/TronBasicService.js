@@ -15,6 +15,11 @@ class TronBasicService {
     });
   }
 
+ async createAccount() {
+   const account = await this.tronWeb.createAccount();
+    return account;
+ }
+
  async getAccount(accountIndex = 0) {
     console.log('Getting account with mnemonic:', this.mnemonic ? 'PRESENT' : 'MISSING');
 

@@ -41,11 +41,18 @@ class KeyService
     await fs.mkdir(storage_path, { recursive: true });
     await fs.writeFile(file_path, JSON.stringify(encryptedData, null, 2));
 
-    return true;
+    return {
+        code: 201,
+        success: true,
+    };
 
     } catch(error) {
     console.error('Encryption error:', error.message);
-    throw error;
+    return {
+        code: error.code,
+        success: false,
+        error: error.message,
+        }
     }
   }
   async decryptKey(network, currency, type) {
@@ -90,10 +97,17 @@ class KeyService
 
       await fs.writeFile(file_path, data_json);
 
-      return true;
+      return {
+          code: 201,
+          success: true,
+        };
     } catch(error) {
       console.log(error.message);
-      return false;
+      return {
+          code: error.code,
+          success: false,
+          error: error.message,
+        };
     }
   }
 

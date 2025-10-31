@@ -1,18 +1,33 @@
-import Fastify from "fastify";
-import KeyService from "./src/keys.js";
-import USDTService from "./src/Tron/USDTService.js";
-import TronService from "./src/Tron/TronService.js";
-import EtheriumService from "./src/Ether/EtheriumService.js";
+const Fastify = require("fastify");
+const  KeyService = require("./src/Services/keys.js");
+const USDTService = require("./src/Services/Tron/USDTService.js");
+const TronService = require("./src/Services/Tron/TronService.js");
+const EtheriumService = require("./src/Services/Ether/EtheriumService.js");
 const fastify = new Fastify({
   logger: true
 })
 const key = new KeyService();
 
 fastify.get('/ping', async function handle(request, reply) {
-  return {
-    status: 'online'
-  }
+    reply.send({
+        success: true,
+        status: 'online',
+    });
 })
+
+fastify.get('/accounts/:network/:currency/:type', async function handle(request, reply) {
+  const { network, currency, type } = request.params;
+  const service = await createCryptoService(network, currency, type);
+  const account = await service.createAccount();
+  reply.send({
+        success: true,
+        data: account,
+    });
+})
+
+fastify.get('/accounts/throwaway/:network/:currency/:type', async function handle(request, reply) {
+
+});
 
 fastify.post('/keys/:network/:currency/:type', async function handle(request, reply) {
   const { network, currency, type } = request.params;
@@ -21,7 +36,11 @@ fastify.post('/keys/:network/:currency/:type', async function handle(request, re
     mnemonic: request.body.mnemonic
   }
   const response = await key.storeEncrypt(network, currency, type, data.xpub, data.mnemonic);
-  return response;
+  reply.code(response.code);
+  reply.send({
+        success: response.success,
+        error: response.error,
+    });
 });
 
 fastify.post('/keys/unsafe/:network/:currency/:type', async function handle(request, reply) {
@@ -31,7 +50,11 @@ fastify.post('/keys/unsafe/:network/:currency/:type', async function handle(requ
     mnemonic: request.body.mnemonic
   }
   const response = await key.store(network, currency, type, data.xpub, data.mnemonic);
-  return response;
+  reply.code(response.code);
+  reply.send({
+        success: response.success,
+        error: response.error,
+    });
 });
 
 fastify.get('/keys/address/:network/:currency/:type', async function handle(request, reply) {

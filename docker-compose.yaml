@@ -8,6 +8,24 @@ services:
     command: node server.js
     ports:
       - "3001:3000"
+    networks:
+      - signer
+    depends_on:
+      - redis
 
 
+  redis:
+    image: redis:latest
+    container_name: signer-redis
+    volumes:
+    - redis-data:/data
+    command: redis-server --appendonly yes
+    ports:
+      - "6379:6380"
+    networks:
+      - signer
+volumes:
+  redis-data:
 
+networks:
+  signer:

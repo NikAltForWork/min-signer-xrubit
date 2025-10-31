@@ -1,4 +1,4 @@
-const TronBasicService = require('./TronBasicService');
+const TronBasicService = require('../../Core/TronBasicService');
 require('dotenv').config();
 class USDTService extends TronBasicService
 {
