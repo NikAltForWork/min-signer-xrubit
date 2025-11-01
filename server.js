@@ -144,7 +144,6 @@ fastify.post('/transactions/:network/:currency/:type', async function handle(req
     const result = await service.createAndSignTransfer({
       to: address,
       amount: amount.toString(),
-      accountIndex: 0
     });
     reply.send({
         success: true,
@@ -212,3 +211,4 @@ async function startServer() {
 }
 
 startServer();
+

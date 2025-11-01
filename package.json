@@ -4,7 +4,7 @@
   "description": "Minimal version of xrubit signer",
   "main": "server.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "jest --runInBand"
   },
   "author": "",
   "license": "ISC",
@@ -17,5 +17,9 @@
     "fastify": "^5.6.1",
     "ioredis": "^5.8.2",
     "tronweb": "^4.1.0"
+  },
+  "devDependencies": {
+    "jest": "^30.2.0",
+    "supertest": "^7.1.4"
   }
 }
