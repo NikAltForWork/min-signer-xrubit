@@ -101,7 +101,7 @@ fastify.get('/keys/address/:network/:currency/:type', async function handle(requ
   const response = await service.getAccount();
     reply.send({
         success: true,
-        data: response.address
+        data: response
     });
   } catch(error) {
     reply.status(500).send({

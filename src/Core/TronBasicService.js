@@ -1,13 +1,10 @@
 const TronWeb = require('tronweb');
-const Redis = require('ioredis');
+const getRedis = require('./redis.js');
 require('dotenv').config();
 
 class TronBasicService {
   constructor(privateKey) {
-    this.connection = new Redis({
-        host: process.env.REDIS_HOST,
-        port: process.env.REDIS_PORT,
-    });
+    this.connection = getRedis();
     this.privateKey = privateKey;
     this.network = process.env.TRON_NETWORK;
     this.tronWeb = new TronWeb({

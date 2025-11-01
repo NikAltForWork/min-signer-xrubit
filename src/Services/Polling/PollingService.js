@@ -1,6 +1,6 @@
-const Redis = require('ioredis');
 const { Queue, Worker, Job } = require('bullmq/dist/cjs/index.js');
 const client = require('../../Core/Client.js');
+const getRedis = require('../../Core/redis.js');
 const CryptoServiceFactory = require('../CryptoServiceFactory.js');
 require('dotenv').config();
 
@@ -10,11 +10,7 @@ class PollingService
         this.factory = new CryptoServiceFactory;
         this.interval = Number(process.env.POLLING_INTERVAL) || 5000;
         this.attempts = Number(process.env.POLLING_MAX_AMOUNT) || 30;
-        this.connection = new Redis({
-            port: process.env.REDIS_PORT,
-            host: process.env.REDIS_HOST,
-            maxRetriesPerRequest: null,
-        });
+        this.connection = getRedis();
         this.queue = new Queue('polling', { connection: this.connection, defaultJobOptions: {
             removeOnComplete: 100,
             removeOnFail: 100,

@@ -8,7 +8,7 @@ services:
       - ./:/var/www/signer
       - /var/www/signer/node_modules
     env_file: .env
-    command: npx nodemon index.js
+    command: npx nodemon --ignore storage/ --ignore logs/ server.js
     ports:
       - "3001:3000"
     networks:
