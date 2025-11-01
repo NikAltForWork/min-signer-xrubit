@@ -4,8 +4,11 @@ services:
       context: .
       dockerfile: Dockerfile
     container_name: signer-service-prod
+    volumes:
+      - ./:/var/www/signer
+      - /var/www/signer/node_modules
     env_file: .env
-    command: node server.js
+    command: npx nodemon index.js
     ports:
       - "3001:3000"
     networks:
@@ -21,7 +24,7 @@ services:
     - redis-data:/data
     command: redis-server --appendonly yes
     ports:
-      - "6379:6380"
+      - "6379:6379"
     networks:
       - signer
 volumes:

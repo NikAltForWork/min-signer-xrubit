@@ -129,7 +129,7 @@ class TronBasicService {
    try {
      const response = await fetch(`https://api.shasta.trongrid.io/v1/accounts/${address}`);
      const data_u = await response.json();
-
+    console.log(data_u.data.trc20);
     const trc20 = data_u.data[0].trc20;
 
     for (const item of trc20) {

@@ -1,12 +1,14 @@
 const Fastify = require("fastify");
-const  KeyService = require("./src/Services/keys.js");
-const USDTService = require("./src/Services/Tron/USDTService.js");
-const TronService = require("./src/Services/Tron/TronService.js");
-const EtheriumService = require("./src/Services/Ether/EtheriumService.js");
+const CryptoServiceFactory = require('./src/Services/CryptoServiceFactory.js');
+const KeyService = require("./src/Services/keys.js");
+const PollingService = require('./src/Services/Polling/PollingService.js');
+const key = new KeyService();
+
+const factory = new CryptoServiceFactory();
+const polling = new PollingService();
 const fastify = new Fastify({
   logger: true
 })
-const key = new KeyService();
 
 fastify.get('/ping', async function handle(request, reply) {
     reply.send({
@@ -16,20 +18,43 @@ fastify.get('/ping', async function handle(request, reply) {
 })
 
 fastify.get('/accounts/:network/:currency/:type', async function handle(request, reply) {
+  try {
   const { network, currency, type } = request.params;
-  const service = await createCryptoService(network, currency, type);
+  const service = await factory.createCryptoService(network, currency, type);
   const account = await service.createAccount();
   reply.send({
         success: true,
         data: account,
     });
+    } catch(error) {
+    reply.code(500).send({
+        success: false,
+        error: error.message,
+    });
+    }
 })
 
-fastify.get('/accounts/throwaway/:network/:currency/:type', async function handle(request, reply) {
+fastify.post('/accounts/onetime/:network/:currency/:type', async function handle(request, reply) {
+    try {
+    const { network, currency, type } = request.params;
+    const service = await factory.createCryptoService(network, currency, type);
+    const wallet = await service.createAccount();
+    polling.processWallet(network, currency, type, wallet, request.body.amount);
 
+    reply.send({
+        success: true,
+        data: wallet,
+    })
+    } catch(error) {
+    reply.code(500).send({
+        success: false,
+        error: error.message,
+    });
+    }
 });
 
 fastify.post('/keys/:network/:currency/:type', async function handle(request, reply) {
+ try {
   const { network, currency, type } = request.params;
   const data = {
     xpub: request.body.xpub,
@@ -39,11 +64,17 @@ fastify.post('/keys/:network/:currency/:type', async function handle(request, re
   reply.code(response.code);
   reply.send({
         success: response.success,
-        error: response.error,
     });
+    } catch (error) {
+    reply.code(500).send({
+        success: false,
+        error: error.message,
+    });
+    }
 });
 
 fastify.post('/keys/unsafe/:network/:currency/:type', async function handle(request, reply) {
+ try {
   const { network, currency, type } = request.params;
   const data = {
     xpub: request.body.xpub,
@@ -53,38 +84,71 @@ fastify.post('/keys/unsafe/:network/:currency/:type', async function handle(requ
   reply.code(response.code);
   reply.send({
         success: response.success,
-        error: response.error,
     });
+    } catch(error) {
+    reply.status(500).send({
+        success: false,
+        error: error.message
+    });
+    }
 });
 
 fastify.get('/keys/address/:network/:currency/:type', async function handle(request, reply) {
+ try {
   const { network, currency, type } = request.params;
-  const service = await createCryptoService(network, currency, type);
+  const service = await factory.createCryptoService(network, currency, type);
   const response = await service.getAccount();
-  return { address: response.address };
+    reply.send({
+        success: true,
+        data: response.address
+    });
+  } catch(error) {
+    reply.status(500).send({
+        success: false,
+        error: error.message,
+    });
+  }
 });
 
 fastify.get('/keys/stored/:network/:currency/:type', async function handle(request, reply) {
+ try {
   const { network, currency, type } = request.params;
   const response = await key.isStored(network, currency, type);
-  return response;
+    reply.send({
+        success: true,
+        data: response,
+    });
+    } catch(error) {
+    reply.status(500).send({
+        success: false,
+        error: error.message,
+      });
+    }
+
 });
 
 fastify.post('/transactions/:network/:currency/:type', async function handle(request, reply) {
   try {
     const { network, currency, type } = request.params;
     const { address, amount } = request.body;
+    if (!address || !amount) {
+        return reply.code(400).send({
+            success: false,
+            error: 'Missing address or amount',
+        });
+    }
+    request.log.info('Creating transaction:', { network, currency, type, address, amount });
 
-    console.log('Creating transaction:', { network, currency, type, address, amount });
-
-    const service = await createCryptoService(network, currency, type);
+    const service = await factory.createCryptoService(network, currency, type);
     const result = await service.createAndSignTransfer({
       to: address,
       amount: amount.toString(),
       accountIndex: 0
     });
-
-    return { data: result };
+    reply.send({
+        success: true,
+        data: result
+    });
 
   } catch (error) {
     console.error('Transaction error:', error);
@@ -99,9 +163,12 @@ fastify.post('/balance/:network/:currency/:type', async function handle(request,
     try {
         const { address } = request.body;
         const { network, currency, type } = request.params;
-        const service = await createCryptoService(network, currency, type);
+        const service = await factory.createCryptoService(network, currency, type);
         const result = await service.getBalance(address);
-        return result;
+        reply.send({
+            success: true,
+            data: result,
+        });
     } catch(error) {
         return reply.status(500).send({
             success: false,
@@ -109,24 +176,6 @@ fastify.post('/balance/:network/:currency/:type', async function handle(request,
         });
     }
 });
-
-async function createCryptoService(network, currency, type) {
-  const serviceKey = `${network}:${currency}`.toLowerCase();
-
-  switch(serviceKey) {
-    case 'trc20:usdttrc20':
-      var mnemonic = await key.decryptKey(network, currency, type);
-      return new USDTService(mnemonic);
-    case 'trc20:tron':
-      var mnemonic = await key.decryptKey(network, currency, type);
-      return new TronService(mnemonic);
-    case 'ether:etherium':
-      var mnemonic = await key.decryptKey(network, currency, type);
-      return new EtheriumService(mnemonic);
-    default:
-      throw new Error(`Unsupported network/currency: ${network}/${currency}`);
-  }
-}
 
 async function startServer() {
   try {

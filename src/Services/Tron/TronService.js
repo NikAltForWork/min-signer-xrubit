@@ -39,6 +39,16 @@ class TronService extends TronBasicService
     }
   }
 
+    async getBalance(address) {
+    try {
+       return await this.tronWeb.trx.getBalance(address);
+    } catch (error) {
+      console.log(`Failed to get balance: ${error.message}`);
+      return 0;
+    }
+  }
+
+
 }
 
 module.exports = TronService;
