@@ -1,11 +1,76 @@
 const TronBasicService = require('../../Core/TronBasicService');
+const TronWeb = require('tronweb');
 require('dotenv').config();
 class USDTService extends TronBasicService
 {
-    constructor(mnemonic) {
-        super(mnemonic);
+    constructor(privateKey) {
+        super(privateKey);
         this.address = process.env.USDT_CONTRACT_ADDRESS;
     }
+
+  async createAndSignTransfer(params) {
+    try {
+      const { to, amount } = params;
+
+      const address = await this.getAccount();
+
+      const signedTronWeb = new TronWeb({
+        fullHost: this.network,
+        privateKey: this.privateKey
+      });
+
+      const contract = await signedTronWeb.contract().at(this.address);
+      const amountInSun = signedTronWeb.toSun(amount);
+
+      const transaction = await contract.transfer(
+        to,
+        amountInSun
+      ).send({
+        from: address,
+        feeLimit: 100000000,
+        shouldPollResponse: false
+      });
+
+      return {
+        txid: transaction,
+        from: address,
+        to: to,
+        amount: amount,
+        rawData: transaction.raw_data,
+        signature: transaction.signature || []
+      };
+
+    } catch (error) {
+      console.error('Transaction error details:', error);
+    }
+  }
+
+
+   async finishTransaction(address, balance) {
+    try {
+        const data = await this.connection.get(`wallet:${address}`);
+        if (data.privateKey) {
+            const signedTronWeb = new TronWeb({
+                fullHost: process.env.TRON_NETWORK,
+                privateKey: data.privateKey,
+            });
+            const contract = await signedTronWeb.contract().at(this.address);
+            const amountInSun = signedTronWeb.toSun(balance);
+            const transaction = await contract.transfer(
+                this.getAccount().tronAddress,
+                amountInSun
+                ).send({
+                from: account.address,
+                feeLimit: 100000000,
+                shouldPollResponse: false
+                });
+
+            return transaction;
+        }
+    } catch(error) {
+        console.log(error.message);
+    }
+  }
 
    async getBalance(address) {
    try {

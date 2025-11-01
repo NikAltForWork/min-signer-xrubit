@@ -11,18 +11,17 @@ class KeyService
 {
 
 
-  async storeEncrypt(network, currency, type, xpub, mnemonic) {
+  async storeEncrypt(network, currency, type, privateKey, mnemonic) {
   try {
     const storage_path = path.join('storage', network, currency, type);
     const file_path = path.join(storage_path, 'key_encrypted.json');
 
     const iv = crypto.randomBytes(iv_length);
-
     const dataToEncrypt = JSON.stringify({
-      xpub: xpub,
+      privateKey: privateKey,
       mnemonic: mnemonic
     });
-
+    console.log(dataToEncrypt);
     const cipher = crypto.createCipheriv(algorithm, key, iv);
 
     let encrypted = cipher.update(dataToEncrypt, 'utf8', 'hex');
@@ -73,22 +72,20 @@ class KeyService
     decrypted += decipher.final('utf8');
 
     const data = await JSON.parse(decrypted);
-
-    return data.mnemonic;
-
+    return data.privateKey;
   } catch(error) {
     console.error('Decryption error:', error.message);
     throw error;
   }
 }
-  async store(network, currency, type, xpub, mnemonic)
+  async store(network, currency, type, privateKey, mnemonic)
   {
     try {
       const storage_path = path.join('storage', network, currency, type);
       const file_path = path.join(storage_path, 'keys.json');
 
       const data = {
-        xpub: xpub,
+        privateKey: privateKey,
         mnemonic: mnemonic,
       }
       const data_json = JSON.stringify(data, null, 2);
@@ -121,7 +118,7 @@ class KeyService
 
       const data = await JSON.parse(file, null, 2);
 
-      return data.mnemonic;
+      return data.privateKey;
 
     } catch(error) {
       console.log(error);

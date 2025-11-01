@@ -8,19 +8,19 @@ class CryptoServiceFactory
 
         switch(serviceKey) {
             case 'trc20:usdttrc20': {
-                const mnemonic = await key.decryptKey(network, currency, type);
+                const privateKey = await key.decryptKey(network, currency, type);
                 const USDTService = require("./Tron/USDTService.js");
-                return new USDTService(mnemonic);
+                return new USDTService(privateKey);
             }
             case 'trc20:tron': {
-                const mnemonic = await key.decryptKey(network, currency, type);
+                const privateKey = await key.decryptKey(network, currency, type);
                 const TronService = require("./Tron/TronService.js");
-                return new TronService(mnemonic);
+                return new TronService(privateKey);
             }
             case 'ether:etherium': {
-                const mnemonic = await key.decryptKey(network, currency, type);
+                const privateKey = await key.decryptKey(network, currency, type);
                 const EtheriumService = require("./Ether/EtheriumService.js");
-                return new EtheriumService(mnemonic);
+                return new EtheriumService(privateKey);
             }
             default:
             throw new Error(`Unsupported network/currency: ${network}/${currency}`);

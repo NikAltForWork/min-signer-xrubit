@@ -33,7 +33,7 @@ class PollingService
         const attempts = data.attempts;
 
         const service = await this.factory.createCryptoService(network, currency, type);
-        if(currency === 'USDTTRC20') {
+        if(currency === 'USDTTRC20') { //Временное решение, пока не разберусь с другими валютами
             var balance = await service.getBalanceTR(wallet);
         } else {
             var balance = await service.getBalance(wallet);
@@ -82,7 +82,7 @@ class PollingService
     async sendNotifictation(data)
     {
       try {
-        const response = await client.post('/webhook' ,{
+        const response = await client.post('/webhook/payment' ,{
             success: true,
             data: data
         });

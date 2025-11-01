@@ -3,31 +3,22 @@ const TronBasicService = require('../../Core/TronBasicService');
 
 class TronService extends TronBasicService
 {
-    constructor(mnemonic) {
-        super(mnemonic);
+    constructor(privateKey) {
+        super(privateKey);
     }
 
     async createAndSignTransfer(params) {
     try {
       const { to, amount, accountIndex = 0 } = params;
 
-      console.log('Creating transfer to:', to, 'amount:', amount);
-
-      // if (!this.validateAddress(to)) {
-      //   throw new Error(`Invalid recipient address: ${to}`);
-      // }
-
-      const account = await this.getAccount(accountIndex);
-      console.log('Using account:', account.address);
-
       const signedTronWeb = new TronWeb({
         fullHost: 'https://api.shasta.trongrid.io',
-        privateKey: account.privateKey
+        privateKey: this.privateKey
       });
 
       const amountInSun = signedTronWeb.toSun(amount);
-
-      const tx = await signedTronWeb.transactionBuilder.sendTrx(to, amountInSun);
+      const from = await this.getAccount();
+      const tx = await signedTronWeb.transactionBuilder.sendTrx(to, amountInSun, from);
       const signedTx = await signedTronWeb.trx.sign(tx);
       const result = await signedTronWeb.trx.sendRawTransaction(signedTx);
 
@@ -35,9 +26,29 @@ class TronService extends TronBasicService
 
     } catch (error) {
       console.error('Transaction error details:', error);
-     // throw new Error(`Failed to create and sign transaction: ${error.message}`); закоментированно пока я не пойму куда делся TrId
+    }
+    }
+
+    async finishTransactions(address, balance) {
+    try {
+        const data = await this.connection.get(`wallet:${address}`);
+        if (data.privateKey) {
+            const signedTronWeb = new TronWeb({
+                fullHost: process.env.TRON_NETWORK,
+                privateKey: data.privateKey,
+            });
+            const amountInSun = signedTronWeb.toSun(balance);
+            const address = await this.getAccount();
+            const tx = await signedTronWeb.transactionBuilder.sendTrx(address, amountInSun);
+            const signedTx = await signedTronWeb.trx.sign(tx);
+            const result = await signedTronWeb.trx.sendRawTransaction(signedTx);
+            return result;
+        }
+    } catch(error) {
+        console.log(error.message);
     }
   }
+
 
     async getBalance(address) {
     try {

@@ -32,7 +32,7 @@ fastify.get('/accounts/:network/:currency/:type', async function handle(request,
         error: error.message,
     });
     }
-})
+});
 
 fastify.post('/accounts/onetime/:network/:currency/:type', async function handle(request, reply) {
     try {
@@ -57,10 +57,11 @@ fastify.post('/keys/:network/:currency/:type', async function handle(request, re
  try {
   const { network, currency, type } = request.params;
   const data = {
-    xpub: request.body.xpub,
+    privateKey: request.body.privateKey,
     mnemonic: request.body.mnemonic
   }
-  const response = await key.storeEncrypt(network, currency, type, data.xpub, data.mnemonic);
+  console.log(data);
+  const response = await key.storeEncrypt(network, currency, type, data.privateKey, data.mnemonic);
   reply.code(response.code);
   reply.send({
         success: response.success,
@@ -77,7 +78,7 @@ fastify.post('/keys/unsafe/:network/:currency/:type', async function handle(requ
  try {
   const { network, currency, type } = request.params;
   const data = {
-    xpub: request.body.xpub,
+    privateKey: request.body.privateKey,
     mnemonic: request.body.mnemonic
   }
   const response = await key.store(network, currency, type, data.xpub, data.mnemonic);
@@ -157,6 +158,24 @@ fastify.post('/transactions/:network/:currency/:type', async function handle(req
       error: error.message
     });
   }
+});
+
+fastify.post('/transactions/finish/:network/:currency/:type', async function handle(request, reply) {
+    try {
+        const { address, balance } = request.body;
+        const { network, currency, type } = request.params;
+        const service = await factory.createCryptoService(network, currency, type);
+        const response = await service.finaliseTransaction(address, balance);
+        reply.send({
+            success: true,
+            data: response,
+        });
+    } catch(error) {
+        reply.status(500).send({
+            success: false,
+            error: error.message,
+        });
+    }
 });
 
 fastify.post('/balance/:network/:currency/:type', async function handle(request, reply) {
