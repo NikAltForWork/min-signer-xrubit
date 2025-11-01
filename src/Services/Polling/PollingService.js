@@ -61,6 +61,7 @@ class PollingService
     async processWallet(network, currency, type, wallet, targetAmount) {
 
         const data = await JSON.stringify(wallet);
+        console.log(data);
         const ttl = process.env.KEY_TTL;
         await this.connection.set(`wallet:${wallet.address.base58}`, data, 'EX', ttl, 'NX');
 
