@@ -41,7 +41,6 @@ class KeyService
     await fs.writeFile(file_path, JSON.stringify(encryptedData, null, 2));
 
     return {
-        code: 201,
         success: true,
     };
 

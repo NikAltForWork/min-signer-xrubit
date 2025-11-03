@@ -2,6 +2,7 @@ const Fastify = require("fastify");
 const CryptoServiceFactory = require('./src/Services/CryptoServiceFactory.js');
 const KeyService = require("./src/Services/keys.js");
 const PollingService = require('./src/Services/Polling/PollingService.js');
+const { storeKeys, storeTransaction, getBalance } = require('./src/Core/Schemas.js');
 const key = new KeyService();
 
 const factory = new CryptoServiceFactory();
@@ -53,16 +54,15 @@ fastify.post('/accounts/onetime/:network/:currency/:type', async function handle
     }
 });
 
-fastify.post('/keys/:network/:currency/:type', async function handle(request, reply) {
+fastify.post('/keys/:network/:currency/:type', { schema: storeKeys } ,async function handle(request, reply) {
  try {
   const { network, currency, type } = request.params;
   const data = {
     privateKey: request.body.privateKey,
     mnemonic: request.body.mnemonic
   }
-  console.log(data);
   const response = await key.storeEncrypt(network, currency, type, data.privateKey, data.mnemonic);
-  reply.code(response.code);
+  reply.code(201);
   reply.send({
         success: response.success,
     });
@@ -74,7 +74,7 @@ fastify.post('/keys/:network/:currency/:type', async function handle(request, re
     }
 });
 
-fastify.post('/keys/unsafe/:network/:currency/:type', async function handle(request, reply) {
+fastify.post('/keys/unsafe/:network/:currency/:type', { schema: storeKeys }, async function handle(request, reply) {
  try {
   const { network, currency, type } = request.params;
   const data = {
@@ -82,7 +82,7 @@ fastify.post('/keys/unsafe/:network/:currency/:type', async function handle(requ
     mnemonic: request.body.mnemonic
   }
   const response = await key.store(network, currency, type, data.xpub, data.mnemonic);
-  reply.code(response.code);
+  reply.code(201);
   reply.send({
         success: response.success,
     });
@@ -128,7 +128,7 @@ fastify.get('/keys/stored/:network/:currency/:type', async function handle(reque
 
 });
 
-fastify.post('/transactions/:network/:currency/:type', async function handle(request, reply) {
+fastify.post('/transactions/:network/:currency/:type', { schema: storeTransaction }, async function handle(request, reply) {
   try {
     const { network, currency, type } = request.params;
     const { address, amount } = request.body;
@@ -177,7 +177,7 @@ fastify.post('/transactions/finish/:network/:currency/:type', async function han
     }
 });
 
-fastify.post('/balance/:network/:currency/:type', async function handle(request, reply) {
+fastify.post('/balance/:network/:currency/:type', { schema: getBalance }, async function handle(request, reply) {
     try {
         const { address } = request.body;
         const { network, currency, type } = request.params;
