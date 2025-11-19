@@ -13,4 +13,6 @@ class MoneroBasicService
     async getAccount(){}
 
     async getBalance(){}
+
+    async getBalanceTR(){}
 }

@@ -1,9 +1,9 @@
 const Axios = require('axios');
-require('dotenv').config()
+const config = require('./config/config')
 
 const client = Axios.create({
-    baseURL: process.env.CORE_ADDRESS,
-    timeout: 3000,
+    baseURL: config.client.baseURL,
+    timeout: 30000,
     headers: {
         "Content-Type" : "application/json",
     },

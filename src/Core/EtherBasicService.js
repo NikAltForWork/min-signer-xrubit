@@ -34,6 +34,11 @@ class EthersBasicService
         const balanceWei = await this.provider.getBalance(this.wallet.address);
         return Ethers.formatEther(balanceWei);
     }
+
+    async getBalanceTR()
+    {
+        //todo
+    }
 }
 
 module.exports = EthersBasicService;

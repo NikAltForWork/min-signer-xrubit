@@ -1,15 +1,15 @@
-const { Queue, Worker, Job } = require('bullmq/dist/cjs/index.js');
+const { Queue, Worker, } = require('bullmq/dist/cjs/index.js');
 const client = require('../../Core/Client.js');
 const getRedis = require('../../Core/redis.js');
 const CryptoServiceFactory = require('../CryptoServiceFactory.js');
-require('dotenv').config();
+const config = require('../../Core/config/config');
 
 class PollingService
 {
     constructor() {
         this.factory = new CryptoServiceFactory;
-        this.interval = Number(process.env.POLLING_INTERVAL) || 5000;
-        this.attempts = Number(process.env.POLLING_MAX_AMOUNT) || 30;
+        this.interval = Number(config.polling.interval);
+        this.attempts = Number(config.polling.maxAttempts);
         this.connection = getRedis();
         this.queue = new Queue('polling', { connection: this.connection, defaultJobOptions: {
             removeOnComplete: 100,
@@ -34,18 +34,19 @@ class PollingService
         } else {
             var balance = await service.getBalance(wallet);
         }
-        console.log(`polling attempt: ${attempts}, balance: ${balance}, wallet: ${wallet}`);
+        console.log(`polling attempt: ${attempts}, balance: ${balance}, targetAmount: ${targetAmount}, wallet: ${wallet}`);
 
 
         if (balance >= targetAmount) {
-            await this.sendNotifictation({
+            console.log(`polling attempt ${attempts} succeded, balance: ${balance}`);
+            await this.sendNotification({
                 wallet: wallet,
                 balance: balance,
             });
             return [];
         }
         //fastify ограничивает возможность использовать throw, потому проверка на колличество попыток ручная
-        if (attempts <= Number(process.env.POLLING_MAX_AMOUNT)) {
+        if (attempts <= Number(config.polling.maxAttempts)) {
             await this.queue.add('polling', {
                 network: network,
                 currency: currency,
@@ -62,7 +63,7 @@ class PollingService
 
         const data = await JSON.stringify(wallet);
         console.log(data);
-        const ttl = process.env.KEY_TTL;
+        const ttl = config.polling.keyTtl;
         await this.connection.set(`wallet:${wallet.address.base58}`, data, 'EX', ttl, 'NX');
 
         await this.queue.add('polling', {
@@ -76,17 +77,14 @@ class PollingService
 
     }
 
-    async sendNotifictation(data)
+    async sendNotification(data)
     {
       try {
-        const response = await client.post('/webhook/payment' ,{
-            success: true,
-            data: data
-        });
+        const response = await client.post('/api/transactions/webhook/payments', data);
         return response.body;
         }
         catch(error) {
-            console.log(error.message);
+            console.log(error.code);
         }
     }
 }

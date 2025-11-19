@@ -1,14 +1,15 @@
 const TronWeb = require('tronweb');
 const getRedis = require('./redis.js');
-require('dotenv').config();
+const config = require('./config/config');
 
 class TronBasicService {
   constructor(privateKey) {
     this.connection = getRedis();
     this.privateKey = privateKey;
-    this.network = process.env.TRON_NETWORK;
+    this.network = config.tron.network;
     this.tronWeb = new TronWeb({
-      fullHost: process.env.TRON_NETWORK,
+      fullHost: config.tron.network,
+      headers: { 'TRON-PRO-API-KEY': config.tron.key }
     });
   }
 

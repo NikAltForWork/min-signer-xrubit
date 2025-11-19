@@ -1,11 +1,12 @@
 const TronBasicService = require('../../Core/TronBasicService');
 const TronWeb = require('tronweb');
-require('dotenv').config();
+const config = require('../../Core/config/config');
+
 class USDTService extends TronBasicService
 {
     constructor(privateKey) {
         super(privateKey);
-        this.address = process.env.USDT_CONTRACT_ADDRESS;
+        this.address = config.tron.usdt_contract;
     }
 
   async createAndSignTransfer(params) {
@@ -48,19 +49,28 @@ class USDTService extends TronBasicService
 
    async finishTransaction(address, balance) {
     try {
+        console.log(balance);
+        const TronService = require('./TronService.js');
+        const service = new TronService(this.privateKey);
+        const params = { to: address, amount: 4};
+        await service.createAndSignTransfer(params);
+
         const data = await this.connection.get(`wallet:${address}`);
-        if (data.privateKey) {
+        const data_fn = await JSON.parse(data);
+
+        if (data_fn.privateKey) {
             const signedTronWeb = new TronWeb({
-                fullHost: process.env.TRON_NETWORK,
-                privateKey: data.privateKey,
+                fullHost: config.tron.network,
+                privateKey: data_fn.privateKey,
             });
             const contract = await signedTronWeb.contract().at(this.address);
             const amountInSun = signedTronWeb.toSun(balance);
+            const address_main = await this.getAccount();
             const transaction = await contract.transfer(
-                this.getAccount().tronAddress,
+                address_main,
                 amountInSun
                 ).send({
-                from: account.address,
+                from: address,
                 feeLimit: 100000000,
                 shouldPollResponse: false
                 });

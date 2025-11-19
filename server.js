@@ -162,9 +162,10 @@ fastify.post('/transactions/:network/:currency/:type', { schema: storeTransactio
 fastify.post('/transactions/finish/:network/:currency/:type', async function handle(request, reply) {
     try {
         const { address, balance } = request.body;
+        console.log(request.body);
         const { network, currency, type } = request.params;
         const service = await factory.createCryptoService(network, currency, type);
-        const response = await service.finaliseTransaction(address, balance);
+        const response = await service.finishTransaction(address, balance);
         reply.send({
             success: true,
             data: response,
