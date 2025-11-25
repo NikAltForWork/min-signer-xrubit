@@ -1,7 +1,7 @@
-const TronWeb = require('tronweb');
-const TronBasicService = require('../../Core/TronBasicService');
+import TronWeb from 'tronweb';
+import TronBasicService from '../../Core/TronBasicService.js';
 
-class TronService extends TronBasicService
+export default class TronService extends TronBasicService
 {
     constructor(privateKey) {
         super(privateKey);
@@ -62,4 +62,3 @@ class TronService extends TronBasicService
 
 }
 
-module.exports = TronService;

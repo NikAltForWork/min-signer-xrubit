@@ -1,16 +1,14 @@
-const path = require('path');
-const fs = require('fs/promises');
-const  crypto  = require('node:crypto');
-require('dotenv').config();
+import path from 'path';
+import fs from 'fs/promises';
+import crypto from 'node:crypto';
+import config from '../Core/config/config.js';
 
-const key = process.env.APP_KEY;
-const algorithm = process.env.ALGORITHM;
-const iv_length = parseInt(process.env.IV_LENGTH);
+const key = config.keys.appKey;
+const algorithm = config.keys.algorithm;
+const iv_length = parseInt(config.keys.iv_length);
 
-class KeyService
+export default class KeyService
 {
-
-
   async storeEncrypt(network, currency, type, privateKey, mnemonic) {
   try {
     const storage_path = path.join('storage', network, currency, type);
@@ -161,4 +159,3 @@ class KeyService
 
 }
 
-module.exports = KeyService;

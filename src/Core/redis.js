@@ -1,17 +1,17 @@
-const Redis = require('ioredis');
-const config = require('./config/config');
+import Redis from 'ioredis';
+import config from './config/config.js';
 
 let redisInstanse = null;
 
-function getRedis() {
+export function getRedis() {
     if (!redisInstanse) {
         redisInstanse = new Redis({
             host: config.redis.host,
-            port: config.redis.port,
+            port: Number(config.redis.port),
             password: config.redis.password,
             maxRetriesPerRequest: null,
         });
     }
     return redisInstanse;
 }
-module.exports = getRedis;
+

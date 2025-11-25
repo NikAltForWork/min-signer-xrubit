@@ -1,10 +1,10 @@
-const { Queue, Worker, } = require('bullmq/dist/cjs/index.js');
-const client = require('../../Core/Client.js');
-const getRedis = require('../../Core/redis.js');
-const CryptoServiceFactory = require('../CryptoServiceFactory.js');
-const config = require('../../Core/config/config');
+import { Queue, Worker } from 'bullmq';
+import client from '../../Core/Client.js';
+import { getRedis } from '../../Core/redis.js';
+import CryptoServiceFactory from '../CryptoServiceFactory.js';
+import config from '../../Core/config/config.js';
 
-class PollingService
+export default class PollingService
 {
     constructor() {
         this.factory = new CryptoServiceFactory;
@@ -30,12 +30,11 @@ class PollingService
 
         const service = await this.factory.createCryptoService(network, currency, type);
         if(currency === 'USDTTRC20') { //Временное решение, пока не разберусь с другими валютами
-            var balance = await service.getBalanceTR(wallet);
+            var balance = Number(await service.getBalanceTR(wallet));
         } else {
-            var balance = await service.getBalance(wallet);
+            var balance = Number(await service.getBalance(wallet));
         }
         console.log(`polling attempt: ${attempts}, balance: ${balance}, targetAmount: ${targetAmount}, wallet: ${wallet}`);
-
 
         if (balance >= targetAmount) {
             console.log(`polling attempt ${attempts} succeded, balance: ${balance}`);
@@ -85,7 +84,7 @@ class PollingService
         }
         catch(error) {
             console.log(error.code);
+            console.log(error.message);
         }
     }
 }
-module.exports = PollingService;

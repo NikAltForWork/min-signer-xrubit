@@ -1,8 +1,9 @@
-const Fastify = require("fastify");
-const CryptoServiceFactory = require('./src/Services/CryptoServiceFactory.js');
-const KeyService = require("./src/Services/keys.js");
-const PollingService = require('./src/Services/Polling/PollingService.js');
-const { storeKeys, storeTransaction, getBalance } = require('./src/Core/Schemas.js');
+import Fastify from "fastify";
+import CryptoServiceFactory from "./src/Services/CryptoServiceFactory.js";
+import KeyService from "./src/Services/keys.js";
+import PollingService from "./src/Services/Polling/PollingService.js";
+import { storeKeys, storeTransaction, getBalance } from "./src/Core/Schemas.js";
+
 const key = new KeyService();
 
 const factory = new CryptoServiceFactory();
@@ -98,7 +99,7 @@ fastify.get('/keys/address/:network/:currency/:type', async function handle(requ
  try {
   const { network, currency, type } = request.params;
   const service = await factory.createCryptoService(network, currency, type);
-  const response = await service.getAccount();
+    const response = await service.getAccount();
     reply.send({
         success: true,
         data: response

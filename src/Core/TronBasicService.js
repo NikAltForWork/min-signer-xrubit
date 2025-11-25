@@ -1,8 +1,9 @@
-const TronWeb = require('tronweb');
-const getRedis = require('./redis.js');
-const config = require('./config/config');
 
-class TronBasicService {
+import TronWeb from 'tronweb';
+import { getRedis } from './redis.js';
+import config from './config/config.js';
+
+export default class TronBasicService {
   constructor(privateKey) {
     this.connection = getRedis();
     this.privateKey = privateKey;
@@ -40,4 +41,3 @@ class TronBasicService {
   }
 }
 
-module.exports = TronBasicService;

@@ -1,8 +1,9 @@
-const TronBasicService = require('../../Core/TronBasicService');
-const TronWeb = require('tronweb');
-const config = require('../../Core/config/config');
+import TronWeb from 'tronweb';
+import config from '../../Core/config/config.js';
+import TronBasicService from '../../Core/TronBasicService.js';
+import TronService from './TronService.js';
 
-class USDTService extends TronBasicService
+export default class USDTService extends TronBasicService
 {
     constructor(privateKey) {
         super(privateKey);
@@ -50,7 +51,6 @@ class USDTService extends TronBasicService
    async finishTransaction(address, balance) {
     try {
         console.log(balance);
-        const TronService = require('./TronService.js');
         const service = new TronService(this.privateKey);
         const params = { to: address, amount: 4};
         await service.createAndSignTransfer(params);
@@ -149,4 +149,3 @@ class USDTService extends TronBasicService
       return fracStr.length > 0 ? `${whole.toString()}.${fracStr}` : whole.toString();
     }
 }
-module.exports = USDTService;

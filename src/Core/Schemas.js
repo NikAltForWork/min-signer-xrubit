@@ -1,4 +1,4 @@
-const storeKeys = {
+export const storeKeys = {
     body: {
         type: 'object',
         properties: {
@@ -16,7 +16,7 @@ const storeKeys = {
         },
     },
 };
-const storeTransaction = {
+export const storeTransaction = {
     body: {
         type: 'object',
         properties: {
@@ -26,7 +26,7 @@ const storeTransaction = {
         required: ['address', 'amount'],
     },
 };
-const getBalance = {
+export const getBalance = {
     body: {
         type: 'object',
         properties: {
@@ -35,5 +35,3 @@ const getBalance = {
         required: ['address'],
     },
 };
-module.exports = { storeKeys, storeTransaction, getBalance };
-

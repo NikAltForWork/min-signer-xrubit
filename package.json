@@ -1,5 +1,6 @@
 {
   "name": "min-signer",
+  "type": "module",
   "version": "1.0.0",
   "description": "Minimal version of xrubit signer",
   "main": "server.js",

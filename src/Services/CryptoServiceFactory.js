@@ -1,6 +1,8 @@
-const KeyService = require("./keys.js");
+import KeyService from "./keys.js";
+import USDTService from '../Services/Tron/USDTService.js';
+import TronService from '../Services/Tron/TronService.js';
 
-class CryptoServiceFactory
+export default class CryptoServiceFactory
 {
     async createCryptoService(network, currency, type) {
         const key = new KeyService();
@@ -9,18 +11,11 @@ class CryptoServiceFactory
         switch(serviceKey) {
             case 'trc20:usdttrc20': {
                 const privateKey = await key.decryptKey(network, currency, type);
-                const USDTService = require("./Tron/USDTService.js");
                 return new USDTService(privateKey);
             }
             case 'trc20:tron': {
                 const privateKey = await key.decryptKey(network, currency, type);
-                const TronService = require("./Tron/TronService.js");
                 return new TronService(privateKey);
-            }
-            case 'ether:etherium': {
-                const privateKey = await key.decryptKey(network, currency, type);
-                const EtheriumService = require("./Ether/EtheriumService.js");
-                return new EtheriumService(privateKey);
             }
             default:
             throw new Error(`Unsupported network/currency: ${network}/${currency}`);
@@ -29,4 +24,3 @@ class CryptoServiceFactory
 
 }
 
-module.exports = CryptoServiceFactory;
