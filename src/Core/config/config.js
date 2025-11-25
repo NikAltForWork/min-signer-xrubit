@@ -22,7 +22,8 @@ const config = {
         iv_length: process.env.IV_LENGTH || 16,
     },
     client: {
-        baseURL: process.env.CLIENT_ADDRESS || 'http://app-nginx:80'
+        baseURL: process.env.CLIENT_ADDRESS || 'http://app-nginx:80',
+        secret: process.env.SIGNER_SECRET || '9285dasij1129210jasjdapd902j20dpasnnf392ISAaind229',
     },
     tron: {
         network: process.env.TRON_NETWORK || 'https://api.shasta.trongrid.io',

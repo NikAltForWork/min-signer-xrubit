@@ -3,6 +3,8 @@ import CryptoServiceFactory from "./src/Services/CryptoServiceFactory.js";
 import KeyService from "./src/Services/keys.js";
 import PollingService from "./src/Services/Polling/PollingService.js";
 import { storeKeys, storeTransaction, getBalance } from "./src/Core/Schemas.js";
+import crypto from "node:crypto";
+import config from "./src/Core/config/config.js";
 
 const key = new KeyService();
 
@@ -10,6 +12,31 @@ const factory = new CryptoServiceFactory();
 const polling = new PollingService();
 const fastify = new Fastify({
   logger: true
+})
+
+fastify.addHook("preHandler", async function (request, reply) {
+    const timestamp = request.headers["x-timestamp"]; //Потом нужно решить с временем
+    const signature = request.headers["x-signature"];
+
+    const secret = config.client.secret;
+
+
+    if (!timestamp || !signature) {
+        return reply.code(401).send({ error: "Missing auth headers" });
+    }
+
+    const payload = JSON.stringify(request.body || {});
+    const expected = crypto
+        .createHmac("sha256", secret)
+        .update(timestamp + payload)
+        .digest("hex");
+
+    console.log(request.headers);
+    console.log(expected);
+
+    if (expected !== signature) {
+        return reply.code(401).send({ error: "Invalid signature" });
+    }
 })
 
 fastify.get('/ping', async function handle(request, reply) {
