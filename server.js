@@ -5,6 +5,7 @@ import PollingService from "./src/Services/Polling/PollingService.js";
 import { storeKeys, storeTransaction, getBalance } from "./src/Core/Schemas.js";
 import crypto from "node:crypto";
 import config from "./src/Core/config/config.js";
+import client from "./src/Core/Client.js";
 
 const key = new KeyService();
 
@@ -15,6 +16,13 @@ const fastify = new Fastify({
 })
 
 fastify.addHook("preHandler", async function (request, reply) {
+
+    const isEnabled = config.client.securityEnabled;
+
+    if(isEnabled == 0) {
+        return;
+    }
+
     const timestamp = request.headers["x-timestamp"]; //Потом нужно решить с временем
     const signature = request.headers["x-signature"];
 
@@ -223,6 +231,48 @@ fastify.post('/balance/:network/:currency/:type', { schema: getBalance }, async 
         });
     }
 });
+
+fastify.post('/debug/usdt/txId', async function(request, reply) {
+    const address = request.body.address;
+    console.log(address);
+    const url =  `https://api.shasta.trongrid.io/v1/accounts/${address}/transactions/trc20?contract_address=${config.tron.usdt_contract}&only_confirmed=true&limit=200`;
+    const res = await fetch(url);
+    const res_data = await res.json();
+    if(res_data.data && res_data.data[0].transaction_id) {
+        reply.send({
+            txId: res_data.data[0].transaction_id,
+        });
+    }
+
+    reply.send({
+        success: false,
+    });
+});
+
+fastify.post('/debug/usdt/notify', async function (request, reply) {
+
+    const body = JSON.stringify({
+        wallet: request.body.wallet,
+        balance: request.body.balance,
+        txId: request.body.txId,
+    });
+
+    const signature = crypto.createHmac('sha256', config.client.secret)
+            .update(body)
+            .digest('hex');
+
+    const response = await client.post('/api/transactions/webhook/payments', body, {
+        headers: {
+            "Content-Type": "application/json",
+            "X-Signature": signature,
+        }
+    });
+
+    reply.send({
+        data: await response.json(),
+    });
+
+})
 
 async function startServer() {
   try {

@@ -113,22 +113,15 @@ export default class USDTService extends TronBasicService
     async getLastTransaction(address) {
 
        const url =  `https://api.shasta.trongrid.io/v1/accounts/${address}/transactions/trc20?contract_address=${this.address}`;
-        console.log(url);
        const res = await fetch(url);
+       const res_data = await res.json();
+       console.log(res_data);
+       if(res_data.data && res_data.data[0].transaction_id) {
+        return res_data.data[0].transaction_id;
+       }
+       return null;
+    }
 
-       try {
-        const json = await res.json();
-
-        if (json.data && json.data.length > 0) {
-            return json.data[0].transaction_id;
-
-        } else {
-            return null;
-        }
-    } catch (err) {
-        console.error("Error fetching TRC20 transactions:", err);
-        return null;
-    }   }
 
     async sumTokenAmount(response, contractAddress) {
 
