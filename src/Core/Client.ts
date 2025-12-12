@@ -1,7 +1,8 @@
 import Axios from 'axios';
-import config from './config/config.js';
+import type { AxiosInstance } from 'axios';
+import config from './config/config';
 
-const client = Axios.create({
+const client: AxiosInstance = Axios.create({
     baseURL: config.client.baseURL,
     timeout: 30000,
     headers: {

@@ -2,20 +2,20 @@ services:
   signer:
     build:
       context: .
-      dockerfile: Dockerfile
+      dockerfile: Dockerfile.dev
     container_name: signer-service-prod
+    #command: npx nodemon --exec ts-node server.ts
+    command: node dist/server.js
     volumes:
       - ./:/var/www/signer
       - /var/www/signer/node_modules
     env_file: .env
-    command: npx nodemon --ignore storage/ --ignore logs/ server.js
     ports:
       - "3001:3000"
     networks:
       - signer
     depends_on:
       - redis
-
 
   redis:
     image: redis:latest

@@ -1,5 +1,7 @@
 /storage
 /coverage
 /data
+/dist
+/server.js
 /node_modules
 .env
