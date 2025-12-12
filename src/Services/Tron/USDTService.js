@@ -84,7 +84,7 @@ export default class USDTService extends TronBasicService
 
    async getBalance(address) {
    try {
-    const response = await fetch(`https://api.shasta.trongrid.io/v1/accounts/${address}`);
+    const response = await fetch(`${config.tron.network}/v1/accounts/${address}`);
     const data_u = await response.json();
     if (data_u.data[0] == undefined) {
         return '0'
@@ -105,14 +105,14 @@ export default class USDTService extends TronBasicService
    }
 
    async getBalanceTR(address) {
-     const response = await fetch(`https://api.shasta.trongrid.io/v1/accounts/${address}/transactions/trc20`)
+     const response = await fetch(`${config.tron.network}/v1/accounts/${address}/transactions/trc20`)
      const data = await response.json();
      return await this.sumTokenAmount(data, this.address);
    }
 
     async getLastTransaction(address) {
 
-       const url =  `https://api.shasta.trongrid.io/v1/accounts/${address}/transactions/trc20?contract_address=${this.address}`;
+       const url =  `${config.tron.network}/v1/accounts/${address}/transactions/trc20?contract_address=${this.address}`;
        const res = await fetch(url);
        const res_data = await res.json();
        console.log(res_data);

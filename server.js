@@ -269,10 +269,10 @@ fastify.post('/debug/usdt/notify', async function (request, reply) {
     });
 
     reply.send({
-        data: await response.json(),
+        data: response.data,
     });
 
-})
+});
 
 async function startServer() {
   try {

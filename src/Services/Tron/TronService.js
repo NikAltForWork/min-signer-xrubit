@@ -1,5 +1,6 @@
 import TronWeb from 'tronweb';
 import TronBasicService from '../../Core/TronBasicService.js';
+import config from '../../Core/config/config.js';
 
 export default class TronService extends TronBasicService
 {
@@ -12,7 +13,7 @@ export default class TronService extends TronBasicService
       const { to, amount, accountIndex = 0 } = params;
 
       const signedTronWeb = new TronWeb({
-        fullHost: 'https://api.shasta.trongrid.io',
+        fullHost: config.tron.network,
         privateKey: this.privateKey
       });
 
