@@ -1,29 +1,30 @@
 {
-  "name": "min-signer",
-  "version": "1.0.0",
-  "description": "Minimal version of xrubit signer",
-  "main": "server.ts",
-  "scripts": {
-    "test": "jest --runInBand",
-    "dev": "nodemon --exec ts-node index.ts",
-    "build": "tsc"
-  },
-  "author": "",
-  "license": "ISC",
-  "dependencies": {
-    "axios": "^1.13.1",
-    "bip39": "^3.1.0",
-    "bullmq": "^5.63.0",
-    "dotenv": "^17.2.3",
-    "ethers": "^6.15.0",
-    "fastify": "^5.6.1",
-    "ioredis": "^5.8.2",
-    "tronweb": "^4.1.0",
-    "zod": "^4.1.13"
-  },
-  "devDependencies": {
-    "jest": "^30.2.0",
-    "supertest": "^7.1.4",
-    "typescript": "^5.9.3"
-  }
+	"name": "min-signer",
+	"version": "1.0.0",
+	"description": "Minimal version of xrubit signer",
+	"main": "server.ts",
+	"scripts": {
+		"test": "jest --runInBand",
+		"dev": "nodemon --exec ts-node index.ts",
+		"build": "tsc"
+	},
+	"author": "",
+	"license": "ISC",
+	"dependencies": {
+		"axios": "^1.13.1",
+		"bip39": "^3.1.0",
+		"bullmq": "^5.63.0",
+		"dotenv": "^17.2.3",
+		"ethers": "^6.15.0",
+		"fastify": "^5.6.1",
+		"ioredis": "^5.8.2",
+		"tronweb": "^4.1.0",
+		"zod": "^4.1.13"
+	},
+	"devDependencies": {
+		"@biomejs/biome": "2.3.10",
+		"jest": "^30.2.0",
+		"supertest": "^7.1.4",
+		"typescript": "^5.9.3"
+	}
 }
