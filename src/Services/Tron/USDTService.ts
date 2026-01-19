@@ -1,53 +1,112 @@
 import TronWeb from "tronweb";
 import config from "../../Core/config/config";
-import TronLogNotificationService from "./TronLogNotificationService";
 import TronBasicService from "../../Core/TronBasicService";
-import TronService from "./TronService";
-import ReFeeService from "./ReFeeService";
+import NotificationService from "../Notification/NotificationService";
+import CryptoServiceFactory from "../CryptoServiceFactory";
+import ResourcesQueue from "../Polling/Queues/ResourcesQueue";
+import BalanceQueue from "../Polling/Queues/BalanceQueue";
 
 interface usdtSignParams {
 	id: string;
 	to: string;
 	amount: number;
 }
-
+/**
+ * Сервис для работы с USDT в сети TRON
+ */
 export default class USDTService extends TronBasicService {
 	public address: string | undefined;
-
-	constructor(privateKey: string) {
-		super(privateKey);
+	private notifier: NotificationService;
+	constructor(
+		privateKey: string,
+		resource_queue: ResourcesQueue,
+		balance_queue: BalanceQueue,
+	) {
+		super(privateKey, balance_queue, resource_queue);
 		this.address = config.tron.usdt_contract;
+		this.notifier = new NotificationService();
 	}
 
 	public async createAndSignTransfer(params: usdtSignParams) {
 		const { to, amount, id } = params;
-		const tronWeb = new TronWeb({
-			fullHost: this.network,
-			privateKey: this.privateKey,
-		});
-		return await this.createResourceControlledTransaction(
-			to,
-			amount,
-			tronWeb,
-			id,
+
+		const functionSelector = "transfer(address,uint256)";
+
+		const amountInSun = this.tronWeb.toSun(amount);
+
+		const parameter = [
+			{ type: "address", value: to },
+			{ type: "uint256", value: amountInSun },
+		];
+
+		const tx = await this.tronWeb.transactionBuilder.triggerSmartContract(
+			this.address,
+			functionSelector,
+			{
+				feeLimit: config.tron.fee_limit,
+			},
+			parameter,
 		);
+		const signedTx = await this.tronWeb.trx.sign(tx.transaction);
+
+		await this.tronWeb.trx.sendRawTransaction(signedTx);
+
+		return {
+			txid: tx.txid,
+			to: to,
+			amount: amount,
+			rawData: tx.transaction.raw_data,
+			signature: tx.transaction.signature || [],
+		};
 	}
 
-	public async finishTransaction(address: string, balance: string, id: string) {
+	public async finishTransaction(
+		network: string,
+		currency: string,
+		type: string,
+		address: string,
+		balance: string,
+		id: string,
+	) {
 		try {
 			console.log(`Finishing transaction - ${address} balance is ${balance}`);
+			await this.createResourceControlledTransaction(
+				network,
+				currency,
+				type,
+				address,
+				balance,
+				id,
+			);
+		} catch (error: any) {
+			console.log(error.message);
+			this.notifier.notifyLog({
+				type: "tron",
+				level: "error",
+				message: error.message,
+				id: id,
+			});
+		}
+	}
 
-			const service = new TronService(this.privateKey);
-
-			const params = { to: address, amount: 4, id: id };
-			await service.createAndSignTransfer(params);
+	public async finishControlledTransaction(
+		address: string,
+		balance: string,
+		id: string,
+	) {
+		try {
+			console.log(`Finishing transaction - ${address} balance is ${balance}`);
 
 			const data = await this.connection.get(`wallet:${address}`);
 
 			if (!data) {
 				console.error(`transaction - ${address} error key not found`);
-				const logService = new TronLogNotificationService();
-				logService.notifyError("Key not found", id);
+				this.notifier.notifyLog({
+					type: "tron",
+					level: "error",
+					message: "Key not found",
+					id: id,
+				});
 				return;
 			}
 
@@ -59,17 +118,45 @@ export default class USDTService extends TronBasicService {
 					privateKey: data_fn.privateKey,
 				});
 
-				return await this.createResourceControlledTransaction(
-					await this.getAccount(),
-					Number.parseFloat(balance),
-					signedTronWeb,
-					id,
+				const to = await this.getAccount();
+
+				const functionSelector = "transfer(address,uint256)";
+
+				const amountInSun = signedTronWeb.toSun(balance);
+
+				const parameter = [
+					{ type: "address", value: to },
+					{ type: "uint256", value: amountInSun },
+				];
+
+				const tx = await signedTronWeb.transactionBuilder.triggerSmartContract(
+					this.address,
+					functionSelector,
+					{
+						feeLimit: config.tron.fee_limit,
+					},
+					parameter,
 				);
+				const signedTx = await signedTronWeb.trx.sign(tx.transaction);
+
+				await signedTronWeb.trx.sendRawTransaction(signedTx);
+
+				return {
+					txid: tx.txid,
+					to: address,
+					amount: balance,
+					rawData: tx.transaction.raw_data,
+					signature: tx.transaction.signature || [],
+				};
 			}
 		} catch (error: any) {
 			console.log(error.message);
-			const logService = new TronLogNotificationService();
-			logService.notifyError(error.message, id);
+			this.notifier.notifyLog({
+				type: "tron",
+				level: "error",
+				message: error.message,
+				id: id,
+			});
 		}
 	}
 
@@ -155,180 +242,45 @@ export default class USDTService extends TronBasicService {
 	}
 
 	private async createResourceControlledTransaction(
+		network: string,
+		currency: string,
+		type: string,
 		to: string,
-		amount: number,
-		tronWeb: any,
+		amount: string,
 		id: string,
 	) {
 		try {
-			if (!(await this.controllForEnergy(to, id))) {
-				const logService = new TronLogNotificationService();
-				logService.notifyError("Energy controll failed", id);
-				console.log("Energy controll failed");
-				return;
-			}
+			await this.activateWallet(to, id);
 
-			if (!(await this.controllForBandwidth(amount, to, id))) {
-				const logService = new TronLogNotificationService();
-				logService.notifyError("Energy controll failed", id);
-				console.log("Bandwidth controll failed");
-				return;
-			}
-
-			const functionSelector = "transfer(address,uint256)";
-
-			const amountInSun = tronWeb.toSun(amount);
-
-			const parameter = [
-				{ type: "address", value: to },
-				{ type: "uint256", value: amountInSun },
-			];
-
-			const tx = await tronWeb.transactionBuilder.triggerSmartContract(
-				this.address,
-				functionSelector,
+			const targetBandwidth = await this.calculateBandwidth(amount, to);
+			const targetEnergy = await this.reFee.calculateEnergy(to);
+			this.resource_queue.addJob(
 				{
-					feeLimit: config.tron.fee_limit,
+					id: id,
+					network: network,
+					currency: currency,
+					type: type,
+					wallet: to,
+					balance: amount,
+					attempts: 1,
+					isRequested: 0,
+					targetEnergy: targetEnergy,
+					targetBandwidth: targetBandwidth,
 				},
-				parameter,
+				Number.parseInt(config.polling.interval, 10),
 			);
-			const signedTx = await tronWeb.trx.sign(tx.transaction);
-
-			await tronWeb.trx.sendRawTransaction(signedTx);
-
-			return {
-				txid: tx.txid,
-				to: to,
-				amount: amount,
-				rawData: tx.transaction.raw_data,
-				signature: tx.transaction.signature || [],
-			};
 		} catch (error: any) {
 			console.error(`Transaction failed - ${error.message}`);
-			const logService = new TronLogNotificationService();
-			logService.notifyError(error.message, id);
+			this.notifier.notifyLog({
+				type: "tron",
+				level: "error",
+				message: error.message,
+				id: id,
+			});
 		}
 	}
 
-	private async controllForEnergy(to: string, id: string) {
-		const address = await this.getAccount();
-		const tronWeb = new TronWeb({ fullHost: this.network });
-		const ReFee = new ReFeeService();
-		const logService = new TronLogNotificationService();
-
-		const energyRequired = await ReFee.calculateEnergy(to);
-
-		console.log(`Controll for energy in process, required ${energyRequired}`);
-		logService.notifyStatus(
-			`Controll for energy in process, required ${energyRequired}`,
-			id,
-		);
-		let res = await tronWeb.trx.getAccountResources(address);
-
-		let energyLeft = Math.max(
-			0,
-			(res.EnergyLimit ?? 0) - (res.EnergyUsed ?? 0),
-		);
-
-		if (energyLeft >= energyRequired) {
-			return true;
-		}
-
-		const expectedEnergy = energyRequired - energyLeft;
-		console.log(`Not enough energy, renting ${expectedEnergy} from Re:Fee`);
-		logService.notifyStatus(
-			`Not enough energy, renting ${expectedEnergy} from Re:Fee`,
-			id,
-		);
-
-		await ReFee.rentResource(address, expectedEnergy, "energy", "1h");
-
-		for (let i = 0; i < 10; i++) {
-			await new Promise((r) => setTimeout(r, 1000));
-
-			res = await tronWeb.trx.getAccountResources(address);
-			energyLeft = Math.max(0, (res.EnergyLimit ?? 0) - (res.EnergyUsed ?? 0));
-
-			if (energyLeft >= energyRequired) {
-				return true;
-			}
-		}
-
-		return false;
-	}
-
-	private async controllForBandwidth(amount: number, to: string, id: string) {
-		const address = await this.getAccount();
-		const tronWeb = new TronWeb({ fullHost: this.network });
-		const ReFee = new ReFeeService();
-		const logService = new TronLogNotificationService();
-
-		const bandwidthRequired = await this.calculateBandwidth(amount, to);
-		console.log(
-			`Controll for bandwidth in process, required ${bandwidthRequired}`,
-		);
-		logService.notifyStatus(
-			`Controll for bandwidth in process, required ${bandwidthRequired}`,
-			id,
-		);
-
-		let res = await tronWeb.trx.getAccountResources(address);
-
-		let freeLeft = Math.max(
-			0,
-			(res.freeNetLimit ?? 0) - (res.freeNetUsed ?? 0),
-		);
-
-		let netLeft = Math.max(0, (res.NetLimit ?? 0) - (res.NetUsed ?? 0));
-
-		let totalLeft = freeLeft + netLeft;
-
-		if (totalLeft >= bandwidthRequired) {
-			if (freeLeft < bandwidthRequired) {
-				console.warn("Free bandwidth not enough, delegated will be used");
-			}
-			return true;
-		}
-
-		let expectedBandwidth = bandwidthRequired - totalLeft;
-
-		/**
-		 * Это временное решение, пока не будут согласованы кастомные лимиты
-		 */
-
-		if (expectedBandwidth < 1000) {
-			expectedBandwidth = 1000;
-		}
-
-		console.log(`Not enough bandwidth, renting ${expectedBandwidth}`);
-		logService.notifyStatus(
-			`Not enough bandwidth, renting ${expectedBandwidth}`,
-			id,
-		);
-
-		await ReFee.rentResource(address, expectedBandwidth, "bandwidth", "1h");
-
-		for (let i = 0; i < 10; i++) {
-			await new Promise((r) => setTimeout(r, 1000));
-
-			res = await tronWeb.trx.getAccountResources(address);
-
-			freeLeft = Math.max(0, (res.freeNetLimit ?? 0) - (res.freeNetUsed ?? 0));
-
-			netLeft = Math.max(0, (res.NetLimit ?? 0) - (res.NetUsed ?? 0));
-
-			totalLeft = freeLeft + netLeft;
-
-			if (totalLeft >= bandwidthRequired) {
-				console.log("Bandwidth successfully obtained");
-				return true;
-			}
-		}
-
-		return false;
-	}
-
-	private async calculateBandwidth(amount: number, to: string) {
+	private async calculateBandwidth(amount: string, to: string) {
 		const BASE_BANDWIDTH = 195;
 
 		const tronWeb = new TronWeb({
@@ -361,5 +313,23 @@ export default class USDTService extends TronBasicService {
 		const bandwith = BASE_BANDWIDTH + transactionSize;
 
 		return Math.ceil(bandwith);
+	}
+
+	private async getTechnicalWalletSigner() {
+		const factory = new CryptoServiceFactory(
+			this.balance_queue,
+			this.resource_queue,
+		);
+		try {
+			return await factory.createCryptoService("TRC20", "TRX", "tech");
+		} catch (error: any) {
+			return await factory.createCryptoService("TRC20", "TRX", "hot");
+		}
+	}
+
+	public async activateWallet(wallet: string, id: string) {
+		const service = await this.getTechnicalWalletSigner();
+
+		await service.activateWallet(wallet, id);
 	}
 }

@@ -18,10 +18,15 @@ interface RentResourceResponse {
 export default class ReFeeService {
 	private key: string;
 	private base_url: string;
+	private proceed_on_failure: number;
 
 	constructor() {
 		this.key = config.tron.re_fee_api_key;
 		this.base_url = config.tron.re_fee_base_url;
+		this.proceed_on_failure = Number.parseInt(
+			config.tron.should_proceed_on_re_fee_failure,
+			10,
+		);
 	}
 
 	public async calculateEnergy(address: string): Promise<number> {
@@ -38,9 +43,12 @@ export default class ReFeeService {
 
 			return Number.parseFloat(response.data.cost);
 		} catch (error: any) {
-			console.log(error.message);
-			console.log(error.response.data);
-			throw new Error(`Failed to calculate energy price ${error.message}`);
+			if (this.proceed_on_failure === 0) {
+				throw new Error(`Failed to calculate energy price ${error.message}`);
+			} else {
+				//                logger.notifyError(`Error in ReFee energy cost calculation - ${error.message}`, "undefined")
+				return 0;
+			}
 		}
 	}
 
@@ -49,7 +57,7 @@ export default class ReFeeService {
 		amount: number,
 		resource: string,
 		duration: string,
-	): Promise<RentResourceResponse> {
+	): Promise<RentResourceResponse | false> {
 		try {
 			const body = {
 				address: address,
@@ -72,9 +80,12 @@ export default class ReFeeService {
 
 			return response.data;
 		} catch (error: any) {
-			console.log(error.message);
-			console.log(error.response.data);
-			throw new Error(`Failed to rent ${resource} ${error.message}`);
+			if (this.proceed_on_failure === 0) {
+				throw new Error(`Failed to rent ${resource} ${error.message}`);
+			} else {
+				//                logger.notifyError(`Error to rent ${resource} on ReFee - ${error.message}`, "undefined")
+				return false;
+			}
 		}
 	}
 }

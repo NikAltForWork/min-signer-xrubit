@@ -6,10 +6,15 @@ import Fastify, {
 import * as crypto from "node:crypto";
 import CryptoServiceFactory from "./src/Services/CryptoServiceFactory";
 import KeyService from "./src/Services/keys";
-import PollingService from "./src/Services/Polling/PollingService";
 import { storeKeys, storeTransaction, getBalance } from "./src/Core/Schemas";
 import config from "./src/Core/config/config";
 import client from "./src/Core/Client";
+import BalanceQueue from "./src/Services/Polling/Queues/BalanceQueue";
+import ResourcesQueue from "./src/Services/Polling/Queues/ResourcesQueue";
+import { getRedis } from "./src/Core/redis";
+import NotificationService from "./src/Services/Notification/NotificationService";
+import BalanceWorker from "./src/Services/Polling/Workers/BalanceWorker";
+import ResourcesWorker from "./src/Services/Polling/Workers/ResourcesWorker";
 
 interface RouteParams {
 	network: string;
@@ -37,7 +42,7 @@ interface BalanceBody {
 }
 
 interface OneTimeAccountBody {
-	amount?: string | number;
+	amount: number;
 	error?: any;
 }
 
@@ -76,8 +81,25 @@ interface BasicResponse {
 }
 
 const keyService = new KeyService();
-const cryptoServiceFactory = new CryptoServiceFactory();
-const pollingService = new PollingService();
+const notificationService = new NotificationService();
+const balance_queue = new BalanceQueue();
+const resource_queue = new ResourcesQueue();
+const cryptoServiceFactory = new CryptoServiceFactory(
+	balance_queue,
+	resource_queue,
+);
+
+const balanceWorker = new BalanceWorker(
+	balance_queue,
+	notificationService,
+	cryptoServiceFactory,
+);
+const resourceWorker = new ResourcesWorker(
+	resource_queue,
+	notificationService,
+	cryptoServiceFactory,
+);
+//const pollingService = new PollingService();
 
 const fastify: FastifyInstance = Fastify({
 	logger: true,
@@ -98,13 +120,13 @@ fastify.addHook(
 		}>,
 		reply: FastifyReply,
 	) => {
-		const isEnabled = config.client.securityEnabled;
+		const isEnabled = Number.parseInt(config.client.securityEnabled);
 
 		if (isEnabled == 0) {
 			return;
 		}
 
-		const timestamp = request.headers["x-timestamp"];
+		const timestamp = request.headers["x-timestamp"]; //Пока не решено, нужны ли timestamp
 		const signature = request.headers["x-signature"];
 		const secret = config.client.secret;
 
@@ -185,13 +207,25 @@ fastify.post<{
 			);
 			const wallet = await service.createAccount();
 
-			pollingService.processWallet(
-				network,
-				currency,
-				type,
-				wallet,
-				Number(request.body.amount),
+			const connection = getRedis();
+			const data = JSON.stringify(wallet);
+			const ttl = config.polling.keyTtl;
+			await connection.set(
+				`wallet:${wallet.address.base58}`,
+				data,
+				"EX",
+				ttl,
+				"NX",
 			);
+
+			balance_queue.addJob({
+				network: network,
+				currency: currency,
+				type: type,
+				wallet: wallet.address.base58,
+				targetAmount: request.body.amount,
+				attempts: 1,
+			});
 
 			return {
 				success: true,
@@ -408,6 +442,9 @@ fastify.post<{
 				type,
 			);
 			const response = await service.finishTransaction(
+				network,
+				currency,
+				type,
 				address,
 				String(balance),
 				id,

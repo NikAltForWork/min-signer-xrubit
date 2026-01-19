@@ -6,7 +6,10 @@ import config from "../../Core/config/config";
 import type { RedisCommander } from "ioredis";
 import * as crypto from "node:crypto";
 
-export interface PollingJobData {
+/**
+ * Данные для опроса баланса трон кошелька
+ */
+export interface PollingBalanceJobData {
 	network: string;
 	currency: string;
 	type: string;
@@ -14,6 +17,14 @@ export interface PollingJobData {
 	targetAmount: number;
 	attempts: number;
 }
+
+export interface PollingResourcesJobData {
+	todo: string;
+}
+
+/**
+ * Данные для отправки уведомления на main
+ */
 
 interface NotificationData {
 	wallet: string;
@@ -26,8 +37,9 @@ export default class PollingService {
 	public interval: number;
 	public attempts: number;
 	public connection: RedisCommander;
-	public queue: Queue<PollingJobData>;
-	public worker: Worker<PollingJobData>;
+	public queue: Queue<PollingBalanceJobData>;
+	public balance_worker: Worker<PollingBalanceJobData>;
+	public resource_worker: Worker<PollingResourcesJobData>;
 
 	constructor() {
 		this.factory = new CryptoServiceFactory();
@@ -46,10 +58,20 @@ export default class PollingService {
 				removeOnFail: 100,
 			},
 		});
-		this.worker = new Worker<PollingJobData>(
+		this.balance_worker = new Worker<PollingBalanceJobData>(
 			"polling",
 			async (job) => {
-				this.pollJob(job.data);
+				this.pollBalanceJob(job.data);
+			},
+			{
+				connection: this.connection as any,
+			},
+		);
+
+		this.resource_worker = new Worker<PollingResourcesJobData>(
+			"polling",
+			async (job) => {
+				//todo
 			},
 			{
 				connection: this.connection as any,
@@ -57,7 +79,7 @@ export default class PollingService {
 		);
 	}
 
-	async pollJob(data: PollingJobData) {
+	async pollBalanceJob(data: PollingBalanceJobData) {
 		const network = data.network;
 		const currency = data.currency;
 		const type = data.type;
@@ -71,12 +93,9 @@ export default class PollingService {
 			currency,
 			type,
 		);
-		if (currency === "USDTTRC20") {
-			//Временное решение, пока не разберусь с другими валютами
-			balance = Number(await service.getBalanceTR(wallet));
-		} else {
-			balance = Number(await service.getBalance(wallet));
-		}
+
+		balance = Number(await service.getBalanceTR(wallet));
+
 		console.log(
 			`polling attempt: ${attempts}, balance: ${balance}, targetAmount: ${targetAmount}, wallet: ${wallet}`,
 		);
@@ -156,6 +175,7 @@ export default class PollingService {
 				.digest("hex");
 
 			const response = await client.post(
+				//axios клиент
 				"/api/transactions/webhook/payments",
 				body,
 				{

@@ -13,9 +13,9 @@ const config = {
 		password: process.env.REDIS_PASSWORD,
 	},
 	polling: {
-		interval: process.env.POLLING_INTERVAL || 30000,
-		maxAttempts: process.env.POLLING_MAX_AMOUNT || 30,
-		keyTtl: process.env.KEY_TTL || 3600,
+		interval: process.env.POLLING_INTERVAL || "60000",
+		maxAttempts: process.env.POLLING_MAX_AMOUNT || "30",
+		keyTtl: process.env.KEY_TTL || "3600",
 	},
 	keys: {
 		appKey: process.env.APP_KEY || "12345678123456781234567812345678",
@@ -27,16 +27,18 @@ const config = {
 		secret:
 			process.env.SIGNER_SECRET ||
 			"9285dasij1129210jasjdapd902j20dpasnnf392ISAaind229",
-		securityEnabled: process.env.SECURITY_ENABLED || 0,
+		securityEnabled: process.env.SECURITY_ENABLED || "0",
 	},
 	tron: {
 		network: process.env.TRON_NETWORK || "https://api.shasta.trongrid.io",
-		key: process.env.TRON_KEY,
+		key: process.env.TRON_KEY || "9f865fde-5809-4d5f-80c2-64247a70391d",
 		usdt_contract: process.env.USDT_CONTRACT_ADDRESS,
 		usdc_contract: process.env.USDC_CONTRACT_ADDRESS,
 		fee_limit: process.env.TRON_FEE_LIMIT || 150000000,
+		activation_deposit: process.env.TRON_ACTIVATION_DEPOSIT || "5",
 		re_fee_api_key: process.env.RE_FEE_API_KEY || "",
 		re_fee_base_url: process.env.RE_FEE_BASE_URL || "https://api.refee.bot/v2",
+		should_proceed_on_re_fee_failure: process.env.RE_FEE_SHOULD_PROCEED || "1",
 	},
 };
 
