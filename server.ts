@@ -15,6 +15,8 @@ import { getRedis } from "./src/Core/redis";
 import NotificationService from "./src/Services/Notification/NotificationService";
 import BalanceWorker from "./src/Services/Polling/Workers/BalanceWorker";
 import ResourcesWorker from "./src/Services/Polling/Workers/ResourcesWorker";
+import NotificationWorker from "./src/Services/Notification/Workers/NotificationWorker";
+import NotificationQueue from "./src/Services/Notification/Queues/NorificationQueue";
 
 interface RouteParams {
 	network: string;
@@ -84,6 +86,7 @@ const keyService = new KeyService();
 const notificationService = new NotificationService();
 const balance_queue = new BalanceQueue();
 const resource_queue = new ResourcesQueue();
+const notification_queue = new NotificationQueue();
 const cryptoServiceFactory = new CryptoServiceFactory(
 	balance_queue,
 	resource_queue,
@@ -91,14 +94,17 @@ const cryptoServiceFactory = new CryptoServiceFactory(
 
 const balanceWorker = new BalanceWorker(
 	balance_queue,
-	notificationService,
+	notification_queue,
 	cryptoServiceFactory,
+    notificationService,
 );
 const resourceWorker = new ResourcesWorker(
 	resource_queue,
 	notificationService,
 	cryptoServiceFactory,
 );
+
+const notificationWorker = new NotificationWorker();
 //const pollingService = new PollingService();
 
 const fastify: FastifyInstance = Fastify({

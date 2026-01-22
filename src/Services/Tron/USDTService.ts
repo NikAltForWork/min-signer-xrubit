@@ -159,11 +159,18 @@ export default class USDTService extends TronBasicService {
 			});
 		}
 	}
-
+	/**
+	 * Проврека баланса
+	 */
 	public async getBalance(address: string) {
 		try {
 			const response = await fetch(
 				`${config.tron.network}/v1/accounts/${address}`,
+				{
+					headers: {
+						"TRON-PRO-API-KEY": config.tron.key,
+					},
+				},
 			);
 			const data_u = await response.json();
 			if (data_u?.data?.[0] === undefined) {
@@ -184,9 +191,17 @@ export default class USDTService extends TronBasicService {
 		}
 	}
 
+	/**
+	 * Проверка баланса через транзакции
+	 */
 	public async getBalanceTR(address: string) {
 		const response = await fetch(
 			`${config.tron.network}/v1/accounts/${address}/transactions/trc20`,
+			{
+				headers: {
+					"TRON-PRO-API-KEY": config.tron.key,
+				},
+			},
 		);
 		const data = await response.json();
 		return await this.sumTokenAmount(data, String(this.address));
@@ -194,7 +209,11 @@ export default class USDTService extends TronBasicService {
 
 	public async getLastTransaction(address: string) {
 		const url = `${config.tron.network}/v1/accounts/${address}/transactions/trc20?contract_address=${this.address}`;
-		const res = await fetch(url);
+		const res = await fetch(url, {
+			headers: {
+				"TRON-PRO-API-KEY": config.tron.key,
+			},
+		});
 		const res_data = await res.json();
 		console.log(res_data);
 		if (res_data.data && res_data.data[0].transaction_id) {
@@ -329,7 +348,6 @@ export default class USDTService extends TronBasicService {
 
 	public async activateWallet(wallet: string, id: string) {
 		const service = await this.getTechnicalWalletSigner();
-
 		await service.activateWallet(wallet, id);
 	}
 }

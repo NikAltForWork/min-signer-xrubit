@@ -1,10 +1,11 @@
 import { Worker } from "bullmq";
-import { PollingBalanceJobData } from "../PollingService";
+import { PollingBalanceJobData } from "../Queues/BalanceQueue";
 import config from "../../../Core/config/config";
 import { getRedis } from "../../../Core/redis";
 import CryptoServiceFactory from "../../../Services/CryptoServiceFactory";
 import NotificationService from "../../../Services/Notification/NotificationService";
 import BalanceQueue from "../Queues/BalanceQueue";
+import NotificationQueue from "../../Notification/Queues/NorificationQueue";
 
 /**
  * Worker для пуллинга баланса временного трон кошелька.
@@ -14,13 +15,15 @@ import BalanceQueue from "../Queues/BalanceQueue";
 export default class BalanceWorker {
 	private worker: Worker<PollingBalanceJobData>;
 	private factory: CryptoServiceFactory;
-	private notification: NotificationService;
+	private notification: NotificationQueue;
 	private queue: BalanceQueue;
+    private log: NotificationService;
 
 	constructor(
 		queue: BalanceQueue,
-		notification: NotificationService,
+		notification: NotificationQueue,
 		factory: CryptoServiceFactory,
+        log: NotificationService,
 	) {
 		this.worker = new Worker<PollingBalanceJobData>(
 			"polling-balance",
@@ -33,6 +36,7 @@ export default class BalanceWorker {
 		);
 		this.factory = factory;
 		this.notification = notification;
+        this.log = log;
 		this.queue = queue;
 	}
 
@@ -54,7 +58,7 @@ export default class BalanceWorker {
 
 		balance = Number(await service.getBalanceTR(wallet));
 
-		this.notification.notifyLog({
+		this.log.notifyLog({
 			type: "tron - polling",
 			level: "info",
 			message: `polling attempt: ${attempts}, balance: ${balance}, targetAmount: ${targetAmount}, wallet: ${wallet}`,
@@ -64,7 +68,7 @@ export default class BalanceWorker {
 		if (balance >= targetAmount) {
 			txId = await service.getLastTransaction(wallet);
 
-			await this.notification.notifyPayment({
+			await this.notification.addJob({
 				wallet: wallet,
 				balance: balance,
 				txId: txId,

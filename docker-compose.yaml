@@ -6,6 +6,7 @@ services:
     container_name: signer-service-prod
     #command: npx nodemon --exec ts-node server.ts
     command: node dist/server.js
+    #Не забыть закоментировать
     volumes:
       - ./:/var/www/signer
       - /var/www/signer/node_modules

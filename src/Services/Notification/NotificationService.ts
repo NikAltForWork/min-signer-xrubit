@@ -2,12 +2,6 @@ import client from "../../Core/Client";
 import config from "../../Core/config/config";
 import * as crypto from "node:crypto";
 
-interface NotificationPaymentData {
-	wallet: string;
-	balance: number;
-	txId: string;
-}
-
 interface NotificationLogData {
 	type: string;
 	level: string;
@@ -33,25 +27,6 @@ export default class NotificationService {
 					"X-Signature": await this.sign(body),
 				},
 			});
-		} catch (error: any) {
-			console.log(error.message);
-			throw error;
-		}
-	}
-
-	public async notifyPayment(data: NotificationPaymentData) {
-		try {
-			await client.post(
-				//axios клиент
-				"/api/transactions/webhook/payments",
-				data,
-				{
-					headers: {
-						"Content-Type": "application/json",
-						"X-Signature": await this.sign(data),
-					},
-				},
-			);
 		} catch (error: any) {
 			console.log(error.message);
 			throw error;

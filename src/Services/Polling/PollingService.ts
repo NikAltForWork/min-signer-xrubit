@@ -1,3 +1,4 @@
+/**
 import { Queue, Worker } from "bullmq";
 import client from "../../Core/Client";
 import { getRedis } from "../../Core/redis";
@@ -6,9 +7,6 @@ import config from "../../Core/config/config";
 import type { RedisCommander } from "ioredis";
 import * as crypto from "node:crypto";
 
-/**
- * Данные для опроса баланса трон кошелька
- */
 export interface PollingBalanceJobData {
 	network: string;
 	currency: string;
@@ -22,9 +20,6 @@ export interface PollingResourcesJobData {
 	todo: string;
 }
 
-/**
- * Данные для отправки уведомления на main
- */
 
 interface NotificationData {
 	wallet: string;
@@ -192,3 +187,4 @@ export default class PollingService {
 		}
 	}
 }
+*/
