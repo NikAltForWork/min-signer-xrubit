@@ -48,6 +48,12 @@ interface OneTimeAccountBody {
 	error?: any;
 }
 
+interface RestartPolingBody {
+    wallet: string,
+	amount: number;
+    error?: any;
+}
+
 interface DebugUsdtBody {
 	address?: string;
 	wallet?: string;
@@ -608,6 +614,43 @@ fastify.post<{
 		}
 	},
 );
+// Запустить полинг заново
+fastify.post<{
+	Params: RouteParams;
+	Body: RestartPolingBody;
+}>(
+	"/accounts/debug/polling/:network/:currency/:type",
+	async (
+		request: FastifyRequest<{ Params: RouteParams; Body: RestartPolingBody }>,
+		reply: FastifyReply,
+	): Promise<CreateAccountResponse> => {
+		try {
+			const { network, currency, type } = request.params;
+            const { wallet, amount } = request.body;
+
+			balance_queue.addJob({
+				network: network,
+				currency: currency,
+				type: type,
+				wallet: wallet,
+				targetAmount: amount,
+				attempts: 1,
+			});
+
+			return {
+				success: true,
+				data: wallet,
+			};
+		} catch (error: any) {
+			reply.code(500);
+			return {
+				success: false,
+			};
+		}
+	},
+);
+
+
 
 // Запуск сервера
 async function startServer(): Promise<void> {

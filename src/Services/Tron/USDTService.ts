@@ -15,7 +15,7 @@ interface usdtSignParams {
  * Сервис для работы с USDT в сети TRON
  */
 export default class USDTService extends TronBasicService {
-	public address: string | undefined;
+	public address: string;
 	private notifier: NotificationService;
 	constructor(
 		privateKey: string,
@@ -204,7 +204,7 @@ export default class USDTService extends TronBasicService {
 			},
 		);
 		const data = await response.json();
-		return await this.sumTokenAmount(data, String(this.address));
+		return await this.sumTokenAmount(data, this.address);
 	}
 
 	public async getLastTransaction(address: string) {
@@ -340,7 +340,7 @@ export default class USDTService extends TronBasicService {
 			this.resource_queue,
 		);
 		try {
-			return await factory.createCryptoService("TRC20", "TRX", "tech");
+			return await factory.createCryptoService("TRC20", "USDTTRC20", "tech");
 		} catch (error: any) {
 			return await factory.createCryptoService("TRC20", "TRX", "hot");
 		}
