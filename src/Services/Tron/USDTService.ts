@@ -2,7 +2,6 @@ import TronWeb from "tronweb";
 import config from "../../Core/config/config";
 import TronBasicService from "../../Core/TronBasicService";
 import NotificationService from "../Notification/NotificationService";
-import CryptoServiceFactory from "../CryptoServiceFactory";
 import ResourcesQueue from "../Polling/Queues/ResourcesQueue";
 import BalanceQueue from "../Polling/Queues/BalanceQueue";
 import ReFeeService from "./ReFeeService";
@@ -96,7 +95,7 @@ export default class USDTService extends TronBasicService {
 		id: string,
 	) {
 		try {
-			console.log(`Finishing transaction - ${address} balance is ${balance}`);
+			console.log(`Finishing controlled transaction - ${address} balance is ${balance}`);
 
 			const data = await this.connection.get(`wallet:${address}`);
 
@@ -117,6 +116,7 @@ export default class USDTService extends TronBasicService {
 				const signedTronWeb = new TronWeb({
 					fullHost: config.tron.network,
 					privateKey: data_fn.privateKey,
+			        headers: { "TRON-PRO-API-KEY": config.tron.key },
 				});
 
 				const to = await this.getAccount();
