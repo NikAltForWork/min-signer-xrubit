@@ -35,8 +35,13 @@ export default class ResourcesQueue {
 				maxRetriesPerRequest: null,
 			},
 			defaultJobOptions: {
-				removeOnComplete: 100,
-				removeOnFail: 100,
+				removeOnComplete: 50,
+				removeOnFail: 50,
+                attempts: 3,
+                backoff: {
+                    type: "exponential",
+                    delay: 30000,
+                }
 			},
 		});
 	}

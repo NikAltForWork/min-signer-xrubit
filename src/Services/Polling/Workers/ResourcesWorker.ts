@@ -19,6 +19,7 @@ export default class ResourcesWorker {
 	private factory: CryptoServiceFactory;
 	private notification: NotificationService;
 	private queue: ResourcesQueue;
+    private tronWeb: typeof TronWeb;
 
 	constructor(
 		queue: ResourcesQueue,
@@ -32,11 +33,22 @@ export default class ResourcesWorker {
 			},
 			{
 				connection: getRedis(),
+                concurrency: 3,
+                limiter: {
+                    max: 5,
+                    duration: 1000,
+                },
 			},
 		);
 		this.factory = factory;
 		this.notification = notification;
 		this.queue = queue;
+        this.tronWeb = new TronWeb({
+            fullHost: config.tron.network,
+			headers: {
+				"TRON-PRO-API-KEY": config.tron.key,
+			},
+        });
 	}
 
 	async pollResourcesJob(data: PollingResourcesJobData) {
@@ -101,14 +113,12 @@ export default class ResourcesWorker {
 			id: id,
 		});
 
-		const tronWeb = new TronWeb({ fullHost: config.tron.network });
-
 		/**
 		 * Проверка на пропускную способность кошелька
 		 */
 		let isChecked = 1;
 
-		let res = await tronWeb.trx.getAccountResources(wallet);
+		let res = await this.tronWeb.trx.getAccountResources(wallet);
 
 		let freeLeft = Math.max(
 			0,

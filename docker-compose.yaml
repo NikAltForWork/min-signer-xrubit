@@ -4,6 +4,8 @@ services:
       context: .
       dockerfile: Dockerfile.dev
     container_name: signer-service-prod
+    mem_limit: 500M
+    mem_reservation: 300M
     #command: npx nodemon --exec ts-node server.ts
     command: node dist/server.js
     #Не забыть закоментировать
