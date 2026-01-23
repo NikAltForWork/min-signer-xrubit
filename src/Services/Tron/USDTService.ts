@@ -273,7 +273,6 @@ export default class USDTService extends TronBasicService {
 		id: string,
 	) {
 		try {
-			//await this.activateWallet(to, id);
 
 			const targetBandwidth = await this.calculateBandwidth(amount, to);
 			const targetEnergy = await this.reFee.calculateEnergy(to);
@@ -332,23 +331,6 @@ export default class USDTService extends TronBasicService {
 		const bandwith = BASE_BANDWIDTH + transactionSize;
 
 		return Math.ceil(bandwith);
-	}
-
-	private async getTechnicalWalletSigner() {
-		const factory = new CryptoServiceFactory(
-			this.balance_queue,
-			this.resource_queue,
-		);
-		try {
-			return await factory.createCryptoService("TRC20", "USDTTRC20", "tech");
-		} catch (error: any) {
-			return await factory.createCryptoService("TRC20", "TRX", "hot");
-		}
-	}
-
-	public async activateWallet(wallet: string, id: string) {
-		const service = await this.getTechnicalWalletSigner();
-		await service.activateWallet(wallet, id);
 	}
 
 	public getContract() {

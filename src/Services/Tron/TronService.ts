@@ -108,36 +108,6 @@ export default class TronService extends TronBasicService {
 		console.log(address);
 	}
 
-	async activateWallet(wallet: string, id: string) {
-		try {
-			const signedTronWeb = new TronWeb({
-				fullHost: config.tron.network,
-				privateKey: this.privateKey,
-				headers: { "TRON-PRO-API-KEY": config.tron.key },
-			});
-			const activationFee = Number.parseInt(config.tron.activation_deposit);
-			const amountInSun = signedTronWeb.toSun(activationFee);
-			const from = await this.getAccount();
-			const tx = await signedTronWeb.transactionBuilder.sendTrx(
-				wallet,
-				amountInSun,
-				from,
-			);
-			const signedTx = await signedTronWeb.trx.sign(tx);
-			const result = await signedTronWeb.trx.sendRawTransaction(signedTx);
-
-			return result;
-		} catch (error: any) {
-			this.notifier.notifyLog({
-				type: "tron",
-				level: "error",
-				message: `Failed to activate wallet - ${error.message}`,
-				id: id,
-			});
-			console.error("Transaction error details:", error.message);
-		}
-	}
-
 	public getContract() {
 		return "";
 	}
