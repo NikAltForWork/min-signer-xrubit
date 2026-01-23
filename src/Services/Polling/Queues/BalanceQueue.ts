@@ -31,8 +31,8 @@ export default class BalanceQueue {
 				maxRetriesPerRequest: null,
 			},
 			defaultJobOptions: {
-				removeOnComplete: 100,
-				removeOnFail: 100,
+				removeOnComplete: true,
+				removeOnFail: true,
 			},
 		});
 	}
