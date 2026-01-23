@@ -17,13 +17,13 @@ export default class BalanceWorker {
 	private factory: CryptoServiceFactory;
 	private notification: NotificationQueue;
 	private queue: BalanceQueue;
-    private log: NotificationService;
+	private log: NotificationService;
 
 	constructor(
 		queue: BalanceQueue,
 		notification: NotificationQueue,
 		factory: CryptoServiceFactory,
-        log: NotificationService,
+		log: NotificationService,
 	) {
 		this.worker = new Worker<PollingBalanceJobData>(
 			"polling-balance",
@@ -36,7 +36,7 @@ export default class BalanceWorker {
 		);
 		this.factory = factory;
 		this.notification = notification;
-        this.log = log;
+		this.log = log;
 		this.queue = queue;
 	}
 
@@ -47,6 +47,7 @@ export default class BalanceWorker {
 		const wallet = data.wallet;
 		const targetAmount = data.targetAmount;
 		const attempts = data.attempts;
+		const contract = data.contract;
 		let balance: number;
 		let txId: string;
 
@@ -61,7 +62,7 @@ export default class BalanceWorker {
 		this.log.notifyLog({
 			type: "tron - polling",
 			level: "info",
-			message: `polling attempt: ${attempts}, balance: ${balance}, targetAmount: ${targetAmount}, wallet: ${wallet}`,
+			message: `polling attempt: ${attempts}, balance: ${balance}, targetAmount: ${targetAmount}, wallet: ${wallet}, contract: ${config.tron.usdt_contract}`,
 			id: "",
 		});
 
@@ -72,6 +73,7 @@ export default class BalanceWorker {
 				wallet: wallet,
 				balance: balance,
 				txId: txId,
+				contract: contract,
 			});
 			return;
 		}

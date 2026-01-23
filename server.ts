@@ -49,9 +49,9 @@ interface OneTimeAccountBody {
 }
 
 interface RestartPolingBody {
-    wallet: string,
+	wallet: string;
 	amount: number;
-    error?: any;
+	error?: any;
 }
 
 interface DebugUsdtBody {
@@ -102,7 +102,7 @@ const balanceWorker = new BalanceWorker(
 	balance_queue,
 	notification_queue,
 	cryptoServiceFactory,
-    notificationService,
+	notificationService,
 );
 const resourceWorker = new ResourcesWorker(
 	resource_queue,
@@ -237,6 +237,7 @@ fastify.post<{
 				wallet: wallet.address.base58,
 				targetAmount: request.body.amount,
 				attempts: 1,
+				contract: service.getContract(),
 			});
 
 			return {
@@ -626,7 +627,7 @@ fastify.post<{
 	): Promise<CreateAccountResponse> => {
 		try {
 			const { network, currency, type } = request.params;
-            const { wallet, amount } = request.body;
+			const { wallet, amount } = request.body;
 
 			balance_queue.addJob({
 				network: network,
@@ -649,8 +650,6 @@ fastify.post<{
 		}
 	},
 );
-
-
 
 // Запуск сервера
 async function startServer(): Promise<void> {

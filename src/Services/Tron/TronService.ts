@@ -33,6 +33,7 @@ export default class TronService extends TronBasicService {
 			const signedTronWeb = new TronWeb({
 				fullHost: config.tron.network,
 				privateKey: this.privateKey,
+				headers: { "TRON-PRO-API-KEY": config.tron.key },
 			});
 
 			const amountInSun = signedTronWeb.toSun(amount);
@@ -65,6 +66,7 @@ export default class TronService extends TronBasicService {
 				const signedTronWeb = new TronWeb({
 					fullHost: config.tron.network,
 					privateKey: data.privateKey,
+					headers: { "TRON-PRO-API-KEY": config.tron.key },
 				});
 				const amountInSun = signedTronWeb.toSun(balance);
 				const address = await this.getAccount();
@@ -111,6 +113,7 @@ export default class TronService extends TronBasicService {
 			const signedTronWeb = new TronWeb({
 				fullHost: config.tron.network,
 				privateKey: this.privateKey,
+				headers: { "TRON-PRO-API-KEY": config.tron.key },
 			});
 			const activationFee = Number.parseInt(config.tron.activation_deposit);
 			const amountInSun = signedTronWeb.toSun(activationFee);
@@ -128,10 +131,14 @@ export default class TronService extends TronBasicService {
 			this.notifier.notifyLog({
 				type: "tron",
 				level: "error",
-				message: error.message,
+				message: `Failed to activate wallet - ${error.message}`,
 				id: id,
 			});
-			console.error("Transaction error details:", error);
+			console.error("Transaction error details:", error.message);
 		}
+	}
+
+	public getContract() {
+		return "";
 	}
 }

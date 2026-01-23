@@ -11,6 +11,7 @@ export interface PollingBalanceJobData {
 	wallet: string;
 	targetAmount: number;
 	attempts: number;
+	contract?: string;
 }
 
 /**

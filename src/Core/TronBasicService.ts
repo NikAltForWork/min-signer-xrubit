@@ -56,4 +56,8 @@ export default class TronBasicService {
 	async getLastTransaction(wallet: string) {
 		return wallet;
 	}
+
+	public getContract() {
+		return "";
+	}
 }

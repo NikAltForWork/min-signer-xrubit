@@ -5,11 +5,12 @@ export interface NotificationData {
 	wallet: string;
 	balance: number;
 	txId: string;
+	contract?: string;
 }
 /**
-* Очередь для сообщений об успешной оплате
-* Крипто-Фиат транзакций
-*/
+ * Очередь для сообщений об успешной оплате
+ * Крипто-Фиат транзакций
+ */
 export default class NotificationQueue {
 	private queue: Queue<NotificationData>;
 

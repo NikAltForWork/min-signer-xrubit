@@ -6,9 +6,9 @@ import config from "../../../Core/config/config";
 import * as crypto from "node:crypto";
 
 /**
-* Worker для доставки уведомлений об успешной оплате
-* Крипто-Фиат транзакции
-*/
+ * Worker для доставки уведомлений об успешной оплате
+ * Крипто-Фиат транзакции
+ */
 export default class NotificationWorker {
 	private worker: Worker<NotificationData>;
 
@@ -25,16 +25,12 @@ export default class NotificationWorker {
 	}
 
 	private async sendNotification(data: NotificationData) {
-		await client.post(
-			"/api/transactions/webhook/payments",
-			data,
-			{
-				headers: {
-					"Content-Type": "application/json",
-					"X-Signature": await this.sign(data),
-				},
+		await client.post("/api/transactions/webhook/payments", data, {
+			headers: {
+				"Content-Type": "application/json",
+				"X-Signature": await this.sign(data),
 			},
-		);
+		});
 	}
 
 	private async sign(data: any) {
