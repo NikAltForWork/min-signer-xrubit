@@ -105,7 +105,7 @@ const balanceWorker = new BalanceWorker(
 	notificationService,
 );
 const resourceWorker = new ResourcesWorker(
-//	resource_queue,
+	resource_queue,
 	notificationService,
 	cryptoServiceFactory,
 );

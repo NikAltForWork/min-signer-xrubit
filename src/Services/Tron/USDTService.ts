@@ -82,7 +82,7 @@ export default class USDTService extends TronBasicService {
 			this.notifier.notifyLog({
 				type: "tron",
 				level: "error",
-				message: error.message,
+				message: `Failed to finish transaction ${error.message}`,
 				id: id,
 			});
 		}

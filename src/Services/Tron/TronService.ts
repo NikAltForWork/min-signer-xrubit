@@ -52,7 +52,7 @@ export default class TronService extends TronBasicService {
 			this.notifier.notifyLog({
 				type: "tron",
 				level: "info",
-				message: error.message,
+				message: `Failed to transfer TRX ${error.message}`,
 				id: id,
 			});
 			console.error("Transaction error details:", error);
@@ -82,7 +82,7 @@ export default class TronService extends TronBasicService {
 			this.notifier.notifyLog({
 				type: "tron",
 				level: "error",
-				message: error.message,
+				message: `Failed to send TRX ${error.message}`,
 				id: id,
 			});
 			console.log(error.message);
