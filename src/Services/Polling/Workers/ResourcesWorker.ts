@@ -65,54 +65,6 @@ export default class ResourcesWorker {
 		const currency = data.currency;
 		const type = data.type;
 
-        /**
-		if (attempts >= Number.parseInt(config.polling.maxAttempts)) {
-			return;
-		}
-        */
-
-		if (isRequested !== 1) {
-			this.notification.notifyLog({
-				level: "info",
-				type: "polling",
-				message: "Запрос ресурсов ресурсов у Re:Fee...",
-				id: id,
-			});
-			const reFeeService = new ReFeeService();
-
-			await reFeeService.rentResource(wallet, targetEnergy, "energy", "1h");
-
-			await reFeeService.rentResource(
-				wallet,
-				targetBandwidth,
-				"bandwidth",
-				"1h",
-			);
-
-            /**
-			if (attempts < Number.parseInt(config.polling.maxAttempts)) {
-				this.queue.addJob(
-					{
-						id: id,
-						network: network,
-						currency: currency,
-						type: type,
-						wallet: wallet,
-						balance: balance,
-						attempts: attempts + 1,
-						targetEnergy: targetEnergy,
-						targetBandwidth: targetBandwidth,
-						isRequested: 1,
-					},
-					Number.parseInt(config.polling.interval, 10),
-				);
-			}
-			return;
-            */
-
-            throw new Error("Ожидание ресурсов");
-		}
-
 		this.notification.notifyLog({
 			level: "info",
 			type: "polling",
