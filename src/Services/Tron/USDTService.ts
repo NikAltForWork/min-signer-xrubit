@@ -273,7 +273,7 @@ export default class USDTService extends TronBasicService {
 		id: string,
 	) {
 		try {
-			await this.activateWallet(to, id);
+			//await this.activateWallet(to, id);
 
 			const targetBandwidth = await this.calculateBandwidth(amount, to);
 			const targetEnergy = await this.reFee.calculateEnergy(to);
@@ -303,17 +303,12 @@ export default class USDTService extends TronBasicService {
 		}
 	}
 
-	private async calculateBandwidth(amount: string, to: string) {
+	private async calculateBandwidth(amount: string, to: string): Promise<number> {
 		const BASE_BANDWIDTH = 195;
-
-		const tronWeb = new TronWeb({
-			fullHost: this.network,
-			headers: { "TRON-PRO-API-KEY": config.tron.key },
-		});
 
 		const functionSelector = "transfer(address,uint256)";
 
-		const amountInSun = tronWeb.toSun(amount);
+		const amountInSun = this.tronWeb.toSun(amount);
 
 		const parameter = [
 			{ type: "address", value: to },
@@ -322,7 +317,7 @@ export default class USDTService extends TronBasicService {
 
 		const address = await this.getAccount();
 
-		const transaction = await tronWeb.transactionBuilder.triggerSmartContract(
+		const transaction = await this.tronWeb.transactionBuilder.triggerSmartContract(
 			this.address,
 			functionSelector,
 			{

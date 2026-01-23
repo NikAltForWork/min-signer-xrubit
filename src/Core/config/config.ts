@@ -1,5 +1,4 @@
 import * as dotenv from "dotenv";
-import { getRedis } from "../redis";
 dotenv.config();
 
 const config = {
