@@ -4,7 +4,6 @@ import TronBasicService from "../../Core/TronBasicService";
 import NotificationService from "../Notification/NotificationService";
 import ResourcesQueue from "../Polling/Queues/ResourcesQueue";
 import BalanceQueue from "../Polling/Queues/BalanceQueue";
-import ReFeeService from "./ReFeeService";
 
 interface usdtSignParams {
 	id: string;
@@ -277,17 +276,6 @@ export default class USDTService extends TronBasicService {
 
 			const targetBandwidth = await this.calculateBandwidth(amount, to);
 			const targetEnergy = await this.reFee.calculateEnergy(to);
-
-    		const reFeeService = new ReFeeService();
-
-			await reFeeService.rentResource(to, targetEnergy, "energy", "1h");
-
-			await reFeeService.rentResource(
-				to,
-				targetBandwidth,
-				"bandwidth",
-				"1h",
-			);
 
 			this.resource_queue.addJob(
 				{
