@@ -5,18 +5,20 @@ services:
       dockerfile: deploy/Dockerfile
     container_name: signer-api
     command: node dist/server.js
+    volumes:
+      - shared-storage:/app/storage
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:3000/ping"]
       interval: 30s
       timeout: 10s
       retries: 3
-      start_period: 30s
+      start_period: 10s
     restart: unless-stopped
     env_file: .env
     ports:
       - "3001:3000"
     networks:
-      - signer
+      - exchanger
     depends_on:
       redis:
         condition: service_healthy
@@ -29,10 +31,10 @@ services:
     command: npm run start:worker:tron:notification
     restart: unless-stopped
     volumes:
-      - ../src:/war/www/signer
+      - shared-storage:/app/storage
     env_file: .env
     networks:
-      - signer
+      - exchanger
     depends_on:
       redis:
         condition: service_healthy
@@ -44,11 +46,13 @@ services:
       context: ../
       dockerfile: deploy/Dockerfile
     container_name: signer-balance-worker
+    volumes:
+      - shared-storage:/app/storage
     command: npm run start:worker:tron:balance
     restart: unless-stopped
     env_file: .env
     networks:
-      - signer
+      - exchanger
     depends_on:
       redis:
         condition: service_healthy
@@ -60,11 +64,13 @@ services:
       context: ../
       dockerfile: deploy/Dockerfile
     container_name: signer-resources-worker
+    volumes:
+      - shared-storage:/app/storage
     command: npm run start:worker:tron:resources
     restart: unless-stopped
     env_file: .env
     networks:
-      - signer
+      - exchanger
     depends_on:
       redis:
         condition: service_healthy
@@ -76,11 +82,13 @@ services:
       context: ../
       dockerfile: deploy/Dockerfile
     container_name: signer-activation-worker
+    volumes:
+      - shared-storage:/app/storage
     command: npm run start:worker:tron:activation
     restart: unless-stopped
     env_file: .env
     networks:
-      - signer
+      - exchanger
     depends_on:
       redis:
         condition: service_healthy
@@ -102,16 +110,18 @@ services:
       --port ${REDIS_PORT}
     healthcheck:
       test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD}", "ping"]
+      start_period: 10s
       interval: 60s
       timeout: 5s
       retries: 3
     ports:
       - "6378:${REDIS_PORT}"
     networks:
-      - signer
+      - exchanger
 
 volumes:
   redis-data:
+  shared-storage:
 
 networks:
-  signer:
+  exchanger:
