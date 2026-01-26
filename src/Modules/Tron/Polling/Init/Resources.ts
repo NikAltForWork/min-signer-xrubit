@@ -1,5 +1,6 @@
 import CryptoServiceFactory from "../../CryptoServiceFactory";
 import NotificationService from "../../Notification/NotificationService";
+import ActivationQueue from "../Queues/ActivationQueue";
 import BalanceQueue from "../Queues/BalanceQueue";
 import ResourcesQueue from "../Queues/ResourcesQueue";
 import ResourcesWorker from "../Workers/ResourcesWorker";
@@ -7,9 +8,11 @@ import ResourcesWorker from "../Workers/ResourcesWorker";
 const notificationService = new NotificationService();
 const balance_queue = new BalanceQueue();
 const resource_queue = new ResourcesQueue();
+const activation_queue = new ActivationQueue();
 const cryptoServiceFactory = new CryptoServiceFactory(
 	balance_queue,
 	resource_queue,
+    activation_queue,
 );
 
 const resourceWorker = new ResourcesWorker(
