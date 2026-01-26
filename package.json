@@ -4,6 +4,11 @@
 	"description": "Minimal version of xrubit signer",
 	"main": "server.ts",
 	"scripts": {
+        "start:worker:tron:notification": "node dist/src/Modules/Tron/Notification/Init/Notification.js",
+        "start:worker:tron:balance": "node dist/src/Modules/Tron/Polling/Init/Balance.js",
+        "start:worker:tron:resources": "node dist/src/Modules/Tron/Polling/Init/Resources.js",
+        "start:worker:tron:activation": "node dist/src/Modules/Tron/Polling/Init/Activation.js",
+        "start:workers:dev": "npx nodemon --exec npx ts-node development/dev-workers.ts",
 		"test": "jest --runInBand",
 		"dev": "nodemon --exec ts-node index.ts",
 		"build": "tsc"

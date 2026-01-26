@@ -4,19 +4,17 @@ import Fastify, {
 	type FastifyReply,
 } from "fastify";
 import * as crypto from "node:crypto";
-import CryptoServiceFactory from "./src/Services/CryptoServiceFactory";
-import KeyService from "./src/Services/keys";
 import { storeKeys, storeTransaction, getBalance } from "./src/Core/Schemas";
 import config from "./src/Core/config/config";
 import client from "./src/Core/Client";
-import BalanceQueue from "./src/Services/Polling/Queues/BalanceQueue";
-import ResourcesQueue from "./src/Services/Polling/Queues/ResourcesQueue";
 import { getRedis } from "./src/Core/redis";
-import NotificationService from "./src/Services/Notification/NotificationService";
-import BalanceWorker from "./src/Services/Polling/Workers/BalanceWorker";
-import ResourcesWorker from "./src/Services/Polling/Workers/ResourcesWorker";
-import NotificationWorker from "./src/Services/Notification/Workers/NotificationWorker";
-import NotificationQueue from "./src/Services/Notification/Queues/NorificationQueue";
+import NotificationService from "./src/Modules/Tron/Notification/NotificationService";
+import KeyService from "./src/Modules/Keys/KeyService";
+import NotificationQueue from "./src/Modules/Tron/Notification/Queues/NorificationQueue";
+import BalanceQueue from "./src/Modules/Tron/Polling/Queues/BalanceQueue";
+import ResourcesQueue from "./src/Modules/Tron/Polling/Queues/ResourcesQueue";
+import CryptoServiceFactory from "./src/Modules/Tron/CryptoServiceFactory";
+import ActivationQueue from "./src/Modules/Tron/Polling/Queues/ActivationQueue";
 
 interface RouteParams {
 	network: string;
@@ -60,8 +58,8 @@ interface DebugUsdtBody {
 	balance?: string | number;
 	txId?: string;
 	error?: any;
-}
 
+}
 interface FinishTransactionBody {
 	id: string;
 	address: string;
@@ -81,6 +79,22 @@ interface KeyStoredResponse {
 	error?: any;
 }
 
+export interface PingResponse {
+  success: boolean;
+  service: string;
+  status: "online";
+  timeStamp: string;
+  uptime: number;
+  memory: {
+    rss: number;
+    heapTotal: number;
+    heapUsed: number;
+    external: number;
+    arrayBuffers: number;
+  };
+  nodeVersion: string;
+}
+
 interface BasicResponse {
 	success: boolean;
 	error?: string;
@@ -93,26 +107,12 @@ const notificationService = new NotificationService();
 const balance_queue = new BalanceQueue();
 const resource_queue = new ResourcesQueue();
 const notification_queue = new NotificationQueue();
+const activation_queue = new ActivationQueue();
 const cryptoServiceFactory = new CryptoServiceFactory(
 	balance_queue,
 	resource_queue,
+    activation_queue,
 );
-
-const balanceWorker = new BalanceWorker(
-	balance_queue,
-	notification_queue,
-	cryptoServiceFactory,
-	notificationService,
-);
-const resourceWorker = new ResourcesWorker(
-	resource_queue,
-	notificationService,
-	cryptoServiceFactory,
-);
-
-const notificationWorker = new NotificationWorker();
-//const pollingService = new PollingService();
-
 const fastify: FastifyInstance = Fastify({
 	logger: true,
 });
@@ -132,6 +132,10 @@ fastify.addHook(
 		}>,
 		reply: FastifyReply,
 	) => {
+        if(request.routeOptions.url === "/ping") {
+            return;
+        }
+
 		const isEnabled = Number.parseInt(config.client.securityEnabled);
 
 		if (isEnabled == 0) {
@@ -163,9 +167,14 @@ fastify.get(
 	async (
 		request: FastifyRequest,
 		reply: FastifyReply,
-	): Promise<BasicResponse> => ({
+	): Promise<PingResponse> => ({
 		success: true,
-		status: "online",
+        service: "signer-api",
+        status: "online",
+        timeStamp: new Date().toISOString(),
+        uptime: process.uptime(),
+        memory: process.memoryUsage(),
+        nodeVersion: process.version,
 	}),
 );
 
@@ -412,6 +421,9 @@ fastify.post<{
 				type,
 			);
 			const result = await service.createAndSignTransfer({
+                network: network,
+                currency: currency,
+                type: type,
 				to: address,
 				amount: Number(amount),
 				id: id,
@@ -426,7 +438,7 @@ fastify.post<{
 			reply.code(500);
 			return {
 				success: false,
-				error: error.message,
+				error: error,
 			};
 		}
 	},

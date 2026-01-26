@@ -1,5 +1,6 @@
 import { Queue } from "bullmq";
-import config from "../../../Core/config/config";
+import config from "../../../../Core/config/config";
+import { getRedis } from "../../../../Core/redis";
 
 /**
  * Данные для опроса баланса трон кошелька
@@ -24,12 +25,7 @@ export default class BalanceQueue {
 
 	constructor() {
 		this.queue = new Queue<PollingBalanceJobData>("polling-balance", {
-			connection: {
-				host: config.redis.host,
-				port: Number(config.redis.port),
-				password: config.redis.password,
-				maxRetriesPerRequest: null,
-			},
+			connection: getRedis(),
 			defaultJobOptions: {
 				removeOnComplete: true,
 				removeOnFail: true,

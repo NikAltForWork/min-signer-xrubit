@@ -1,5 +1,5 @@
-import client from "../../Core/Client";
-import config from "../../Core/config/config";
+import client from "../../../Core/Client";
+import config from "../../../Core/config/config";
 import * as crypto from "node:crypto";
 
 interface NotificationLogData {
@@ -22,11 +22,14 @@ export default class NotificationService {
 				},
 			};
 
+            console.log(`Local logs - ${body.message}`);
+            /**
 			await client.post("api/kms/log", body, {
 				headers: {
 					"X-Signature": await this.sign(body),
 				},
 			});
+            */
 		} catch (error: any) {
 			console.log(error.message);
 			throw error;

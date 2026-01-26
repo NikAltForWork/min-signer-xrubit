@@ -1,8 +1,8 @@
 import { Worker } from "bullmq";
 import { NotificationData } from "../Queues/NorificationQueue";
-import { getRedis } from "../../../Core/redis";
-import client from "../../../Core/Client";
-import config from "../../../Core/config/config";
+import { getRedis } from "../../../../Core/redis";
+import client from "../../../../Core/Client";
+import config from "../../../../Core/config/config";
 import * as crypto from "node:crypto";
 
 /**
@@ -43,4 +43,9 @@ export default class NotificationWorker {
 
 		return signature;
 	}
+
+    async shutdown() {
+        await this.worker.close();
+    }
+
 }

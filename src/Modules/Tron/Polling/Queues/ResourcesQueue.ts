@@ -1,8 +1,12 @@
 import { Queue } from "bullmq";
-import config from "../../../Core/config/config";
+import config from "../../../../Core/config/config";
+import { getRedis } from "../../../../Core/redis";
 
 /**
- * Данные для проаерки ресурсов, могут измениться
+ * Данные для проаерки ресурсов.
+ * Парметр isCryptoToFiat = 1 | 0
+ * определяет какая функция будет вызвана
+ * на последнем этапе транзакции
  */
 export interface PollingResourcesJobData {
 	id: string;
@@ -12,7 +16,7 @@ export interface PollingResourcesJobData {
 	wallet: string;
 	balance: string;
 	attempts: number;
-	isRequested: number;
+	isCryptoToFiat: number;
 	targetEnergy: number;
 	targetBandwidth: number;
 }
@@ -28,12 +32,7 @@ export default class ResourcesQueue {
 
 	constructor() {
 		this.queue = new Queue<PollingResourcesJobData>("polling-resources", {
-			connection: {
-				host: config.redis.host,
-				port: Number(config.redis.port),
-				password: config.redis.password,
-				maxRetriesPerRequest: null,
-			},
+			connection: getRedis(),
 			defaultJobOptions: {
 				removeOnComplete: true,
 				removeOnFail: true,

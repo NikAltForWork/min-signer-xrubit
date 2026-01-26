@@ -1,5 +1,5 @@
 import { Queue } from "bullmq";
-import config from "../../../Core/config/config";
+import config from "../../../../Core/config/config";
 
 export interface NotificationData {
 	wallet: string;
@@ -39,4 +39,5 @@ export default class NotificationQueue {
 			},
 		});
 	}
+
 }

@@ -2,7 +2,7 @@ import * as path from "path";
 import * as fs from "fs/promises";
 import * as crypto from "node:crypto";
 import type { CipherGCM } from "crypto";
-import config from "../Core/config/config";
+import config from "../../Core/config/config";
 
 const key = config.keys.appKey;
 const algorithm = config.keys.algorithm;

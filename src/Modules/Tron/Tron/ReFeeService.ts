@@ -1,5 +1,5 @@
 import axios from "axios";
-import config from "../../Core/config/config";
+import config from "../../../Core/config/config";
 import NotificationService from "../Notification/NotificationService";
 
 interface RentResourceResponse {

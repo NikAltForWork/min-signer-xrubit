@@ -1,0 +1,101 @@
+services:
+  api:
+    build:
+      context: ../
+      dockerfile: deploy/Dockerfile
+    container_name: signer-api
+    command: node dist/server.js
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    restart: unless-stopped
+    env_file: .env
+    ports:
+      - "3001:3000"
+    networks:
+      - signer
+    depends_on:
+      redis:
+        condition: service_healthy
+
+  notification-worker:
+    build:
+      context: ../
+      dockerfile: deploy/Dockerfile
+    container_name: signer-notification-worker
+    command: npm run start:worker:tron:notification
+    restart: unless-stopped
+    volumes:
+      - ../src:/war/www/signer
+    env_file: .env
+    networks:
+      - signer
+    depends_on:
+      redis:
+        condition: service_healthy
+      api:
+        condition: service_healthy
+
+  balance-worker:
+    build:
+      context: ../
+      dockerfile: deploy/Dockerfile
+    container_name: signer-balance-worker
+    command: npm run start:worker:tron:balance
+    restart: unless-stopped
+    env_file: .env
+    networks:
+      - signer
+    depends_on:
+      redis:
+        condition: service_healthy
+      api:
+        condition: service_healthy
+
+  resources-worker:
+    build:
+      context: ../
+      dockerfile: deploy/Dockerfile
+    container_name: signer-resources-worker
+    command: npm run start:worker:tron:resources
+    restart: unless-stopped
+    env_file: .env
+    networks:
+      - signer
+    depends_on:
+      redis:
+        condition: service_healthy
+      api:
+        condition: service_healthy
+
+  redis:
+    image: redis:7-alpine
+    container_name: signer-redis
+    env_file:
+      ./redis/.env
+    volumes:
+    - redis-data:/data
+    - ./redis/redis.conf:/usr/local/etc/redis/redis.conf:ro
+    command: >
+      redis-server
+      --appendonly yes
+      --requirepass ${REDIS_PASSWORD}
+      --port ${REDIS_PORT}
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD}", "ping"]
+      interval: 60s
+      timeout: 5s
+      retries: 3
+    ports:
+      - "6378:${REDIS_PORT}"
+    networks:
+      - signer
+
+volumes:
+  redis-data:
+
+networks:
+  signer:

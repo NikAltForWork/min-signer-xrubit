@@ -1,9 +1,10 @@
 import TronWeb from "tronweb";
-import TronBasicService from "../../Core/TronBasicService";
-import config from "../../Core/config/config";
+import TronBasicService from "../../../Core/TronBasicService";
+import config from "../../../Core/config/config";
 import NotificationService from "../Notification/NotificationService";
 import ResourcesQueue from "../Polling/Queues/ResourcesQueue";
 import BalanceQueue from "../Polling/Queues/BalanceQueue";
+import ActicationQueue from "../Polling/Queues/ActivationQueue";
 
 interface tronSignParams {
 	id: string;
@@ -21,8 +22,9 @@ export default class TronService extends TronBasicService {
 		privateKey: string,
 		resource_queue: ResourcesQueue,
 		balance_queue: BalanceQueue,
+        activation_queue: ActicationQueue,
 	) {
-		super(privateKey, balance_queue, resource_queue);
+		super(privateKey, balance_queue, resource_queue, activation_queue);
 		this.notifier = new NotificationService();
 	}
 
@@ -89,11 +91,17 @@ export default class TronService extends TronBasicService {
 		}
 	}
 
+     public async finishActivationControll() {}
+
+
+
 	public async finishControlledTransaction(
 		address: string,
 		balance: string,
 		id: string,
 	) {}
+
+    public async finishFiatToCryptoTransaction() {}
 
 	async getBalance(address: string) {
 		try {

@@ -1,16 +1,23 @@
-import KeyService from "./keys";
-import USDTService from "../Services/Tron/USDTService";
-import TronService from "../Services/Tron/TronService";
+import KeyService from "../Keys/KeyService";
+import USDTService from "./Tron/USDTService";
+import TronService from "./Tron/TronService";
 import BalanceQueue from "./Polling/Queues/BalanceQueue";
 import ResourcesQueue from "./Polling/Queues/ResourcesQueue";
+import ActivationQueue from "./Polling/Queues/ActivationQueue";
 
 export default class CryptoServiceFactory {
 	protected balance_queue: BalanceQueue;
 	protected resource_queue: ResourcesQueue;
+    protected activation_queue: ActivationQueue;
 
-	constructor(balance_queue: BalanceQueue, resource_queue: ResourcesQueue) {
+	constructor(
+        balance_queue: BalanceQueue,
+        resource_queue: ResourcesQueue,
+        activation_queue: ActivationQueue
+    ) {
 		this.balance_queue = balance_queue;
 		this.resource_queue = resource_queue;
+        this.activation_queue = activation_queue;
 	}
 
 	async createCryptoService(network: string, currency: string, type: string) {
@@ -24,6 +31,7 @@ export default class CryptoServiceFactory {
 					privateKey,
 					this.resource_queue,
 					this.balance_queue,
+                    this.activation_queue,
 				);
 			}
 			case "TRC20:TRX": {
@@ -32,6 +40,7 @@ export default class CryptoServiceFactory {
 					privateKey,
 					this.resource_queue,
 					this.balance_queue,
+                    this.activation_queue,
 				);
 			}
 			default:

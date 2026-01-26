@@ -1,0 +1,49 @@
+services:
+  api:
+    build:
+      context: ../
+      dockerfile: development/Dockerfile
+    container_name: signer-api-development
+    command: npx nodemon --exec ts-node server.ts
+    volumes:
+      - ../:/var/www/signer
+      - /var/www/signer/node_modules
+    env_file: .env
+    ports:
+      - "3001:3000"
+    networks:
+      - signer
+    depends_on:
+      - redis
+
+  workers:
+    build:
+      context: ../
+      dockerfile: development/Dockerfile
+    container_name: signer-workers-development
+    command: npm run start:workers:dev
+    volumes:
+      - ../:/var/www/signer
+      - /var/www/signer/node_modules
+    env_file: .env
+    networks:
+      - signer
+    depends_on:
+      - redis
+      - api
+
+  redis:
+    image: redis:7-alpine
+    container_name: signer-redis-development
+    volumes:
+    - redis-data:/data
+    command: redis-server --appendonly yes
+    ports:
+      - "6378:6379"
+    networks:
+      - signer
+volumes:
+  redis-data:
+
+networks:
+  signer:

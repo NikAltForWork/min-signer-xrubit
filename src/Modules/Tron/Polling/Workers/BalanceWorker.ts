@@ -1,9 +1,9 @@
 import { Worker } from "bullmq";
 import { PollingBalanceJobData } from "../Queues/BalanceQueue";
-import config from "../../../Core/config/config";
-import { getRedis } from "../../../Core/redis";
-import CryptoServiceFactory from "../../../Services/CryptoServiceFactory";
-import NotificationService from "../../../Services/Notification/NotificationService";
+import config from "../../../../Core/config/config";
+import { getRedis } from "../../../../Core/redis";
+import CryptoServiceFactory from "../../CryptoServiceFactory";
+import NotificationService from "../../Notification/NotificationService";
 import BalanceQueue from "../Queues/BalanceQueue";
 import NotificationQueue from "../../Notification/Queues/NorificationQueue";
 
@@ -97,4 +97,9 @@ export default class BalanceWorker {
 		}
 		return;
 	}
+
+    async shutdown() {
+        await this.worker.close();
+    }
+
 }

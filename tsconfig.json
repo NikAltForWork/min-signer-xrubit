@@ -10,9 +10,15 @@
 		"baseUrl": "./",
 		"outDir": "./dist",
 		"paths": {
-			"*": ["types/*"]
+			"@/*": ["src/*"],
+			"@core/*": ["src/Core/*"],
+			"@services/*": ["src/Services/*"],
+			"@config": ["src/Core/config/config.ts"],
+			"@redis": ["src/Core/redis.ts"],
+			"@types/*": ["src/types/*"]
 		},
-		"typeRoots": ["./src/types", "./node_modules/@types"]
+		"typeRoots": ["./node_modules/@types", "./src/types/"],
+		"types": ["node"]
 	},
 	"include": ["./src/**/*", "./server.ts"],
 	"exclude": ["node_modules", "dist", "**/*.spec.ts", "**/*.test.ts"]

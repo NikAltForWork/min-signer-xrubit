@@ -2,11 +2,10 @@ import { Worker } from "bullmq";
 import ResourcesQueue, {
 	PollingResourcesJobData,
 } from "../Queues/ResourcesQueue";
-import config from "../../../Core/config/config";
-import { getRedis } from "../../../Core/redis";
-import CryptoServiceFactory from "../../../Services/CryptoServiceFactory";
-import NotificationService from "../../../Services/Notification/NotificationService";
-import ReFeeService from "../../../Services/Tron/ReFeeService";
+import config from "../../../../Core/config/config";
+import { getRedis } from "../../../../Core/redis";
+import CryptoServiceFactory from "../../CryptoServiceFactory";
+import NotificationService from "../../Notification/NotificationService";
 import TronWeb from "tronweb";
 
 /**
@@ -18,11 +17,9 @@ export default class ResourcesWorker {
 	private worker: Worker<PollingResourcesJobData>;
 	private factory: CryptoServiceFactory;
 	private notification: NotificationService;
-	private queue: ResourcesQueue;
 	private tronWeb: typeof TronWeb;
 
 	constructor(
-		queue: ResourcesQueue,
 		notification: NotificationService,
 		factory: CryptoServiceFactory,
 	) {
@@ -42,7 +39,6 @@ export default class ResourcesWorker {
 		);
 		this.factory = factory;
 		this.notification = notification;
-		this.queue = queue;
 		this.tronWeb = new TronWeb({
 			fullHost: config.tron.network,
 			headers: {
@@ -55,60 +51,11 @@ export default class ResourcesWorker {
 		const id = data.id;
 		const wallet = data.wallet;
 		const balance = data.balance;
-		const attempts = data.attempts;
 		const targetEnergy = data.targetEnergy;
 		const targetBandwidth = data.targetBandwidth;
-
-		const isRequested = data.isRequested;
-
 		const network = data.network;
 		const currency = data.currency;
 		const type = data.type;
-
-		if (attempts >= Number.parseInt(config.polling.maxAttempts)) {
-			return;
-		}
-
-		if (isRequested !== 1) {
-			this.notification.notifyLog({
-				level: "info",
-				type: "polling",
-				message: "Запрос ресурсов ресурсов у Re:Fee...",
-				id: id,
-			});
-			const reFeeService = new ReFeeService();
-
-			await reFeeService.rentResource(wallet, targetEnergy, "energy", "1h");
-
-            /**
-			await reFeeService.rentResource(
-				wallet,
-				targetBandwidth,
-				"bandwidth",
-				"1h",
-			);
-            */
-
-			if (attempts < Number.parseInt(config.polling.maxAttempts)) {
-				this.queue.addJob(
-					{
-						id: id,
-						network: network,
-						currency: currency,
-						type: type,
-						wallet: wallet,
-						balance: balance,
-						attempts: attempts + 1,
-						targetEnergy: targetEnergy,
-						targetBandwidth: targetBandwidth,
-						isRequested: 1,
-					},
-					Number.parseInt(config.polling.interval, 10),
-				);
-			}
-			return;
-
-		}
 
 		this.notification.notifyLog({
 			level: "info",
@@ -156,30 +103,6 @@ export default class ResourcesWorker {
 			isChecked = 0;
 		}
 
-		if (isChecked === 0) {
-
-			if (attempts <= Number.parseInt(config.polling.maxAttempts)) {
-				this.queue.addJob(
-					{
-						id: id,
-						network: network,
-						currency: currency,
-						type: type,
-						wallet: wallet,
-						balance: balance,
-						attempts: attempts + 1,
-						targetEnergy: targetEnergy,
-						targetBandwidth: targetBandwidth,
-						isRequested: 1,
-					},
-					Number.parseInt(config.polling.interval, 10),
-				);
-				return;
-			}
-			return;
-
-		}
-
 		if (isChecked === 1) {
 			this.notification.notifyLog({
 				level: "info",
@@ -192,9 +115,19 @@ export default class ResourcesWorker {
 				currency,
 				type,
 			);
-			await service.finishControlledTransaction(wallet, balance, id);
-		}
-
-		return;
+            if(data.isCryptoToFiat === 1) {
+			    await service.finishControlledTransaction(wallet, balance, id);
+            } else {
+                const amount = Number.parseFloat(balance);
+                await service.finishFiatToCryptoTransaction({network: network, currency: currency, type: type, id: id, to: wallet, amount: amount});
+            }
+		} else {
+            throw new Error("AWAITING_RES");
+        }
 	}
+
+    async shutdown() {
+        await this.worker.close();
+    }
+
 }
