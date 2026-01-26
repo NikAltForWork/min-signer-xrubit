@@ -71,6 +71,22 @@ services:
       api:
         condition: service_healthy
 
+  activation-worker:
+    build:
+      context: ../
+      dockerfile: deploy/Dockerfile
+    container_name: signer-activation-worker
+    command: npm run start:worker:tron:activation
+    restart: unless-stopped
+    env_file: .env
+    networks:
+      - signer
+    depends_on:
+      redis:
+        condition: service_healthy
+      api:
+        condition: service_healthy
+
   redis:
     image: redis:7-alpine
     container_name: signer-redis
