@@ -107,7 +107,7 @@ export default class ResourcesWorker {
 			this.notification.notifyLog({
 				level: "info",
 				type: "polling",
-				message: "Запрос ресурсов успешно завершен",
+				message: `Запрос ресурсов успешно завершен, isCryptoToFiat = ${data.isCryptoToFiat}`,
 				id: id,
 			});
 			const service = await this.factory.createCryptoService(

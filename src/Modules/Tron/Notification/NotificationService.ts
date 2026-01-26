@@ -9,6 +9,11 @@ interface NotificationLogData {
 	id: string;
 }
 
+interface NotificationStatusData {
+    id: string;
+    tx_id: string;
+}
+
 export default class NotificationService {
 	public async notifyLog(data: NotificationLogData) {
 		try {
@@ -35,6 +40,22 @@ export default class NotificationService {
 			throw error;
 		}
 	}
+
+    public async notifyStatus(data: NotificationStatusData) {
+        try {
+            const body = {
+                tx_id: data.tx_id,
+            }
+
+           await client.post(`api/kms/${data.id}/confirm`, body, {
+                headers: {
+                    "X-Signature": await this.sign(body),
+                },
+            });
+        } catch(error: any) {
+            console.log(error.message);
+        }
+    }
 
 	private async sign(data: any) {
 		const body = JSON.stringify(data);

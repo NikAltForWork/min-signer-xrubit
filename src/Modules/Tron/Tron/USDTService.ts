@@ -44,7 +44,7 @@ export default class USDTService extends TronBasicService {
             params.to,
             params.amount.toString(),
             params.id,
-            1,
+            0,
         );
 	}
 
@@ -78,19 +78,10 @@ export default class USDTService extends TronBasicService {
 
 		await this.tronWeb.trx.sendRawTransaction(signedTx);
 
-
-        /*
-        * TODO!
-        * Добавить отправку уведомления на backend с статусом и хэшем транзакции
-        */
-		return {
-			txid: tx.txid,
-			to: to,
-			amount: amount,
-			rawData: tx.transaction.raw_data,
-			signature: tx.transaction.signature || [],
-		};
-
+        await this.notifier.notifyStatus({
+            id: id,
+            tx_id: tx.txid
+        });
     }
 
     /**
@@ -373,7 +364,7 @@ export default class USDTService extends TronBasicService {
 					wallet: to,
 					balance: amount,
 					attempts: 1,
-					isCryptoToFiat: isCryptoToFiat || 0,
+					isCryptoToFiat: isCryptoToFiat || 1,
 					targetEnergy: targetEnergy,
 					targetBandwidth: targetBandwidth,
 				},

@@ -31,7 +31,7 @@ export default class ActivationWorker {
         const id = data.id;
         const amount = data.amount;
 
-        const response = await axios.get(`https://api.trongrid.io/v1/accounts/${wallet}`, {
+        const response = await axios.get(`${config.tron.network}/v1/accounts/${wallet}`, {
             headers: {
                 "Accept": "application/json",
                 "TRON-PRO-API-KEY": config.tron.key,
