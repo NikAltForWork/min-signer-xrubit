@@ -13,6 +13,7 @@ export interface PollingBalanceJobData {
 	targetAmount: number;
 	attempts: number;
 	contract?: string;
+    callback: string;
 }
 
 /**

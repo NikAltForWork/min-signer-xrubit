@@ -1,5 +1,6 @@
 import client from "../../../Core/client";
 import config from "../../../Core/config/config";
+import { logger } from "../../../Core/logger";
 import * as crypto from "node:crypto";
 
 interface NotificationLogData {
@@ -10,6 +11,7 @@ interface NotificationLogData {
 }
 
 interface NotificationStatusData {
+    callback: string;
 	id: string;
 	tx_id: string;
 }
@@ -27,7 +29,6 @@ export default class NotificationService {
 				},
 			};
 
-			console.log(`Local logs - ${body.message}`);
 			/**
 			await client.post("api/kms/log", body, {
 				headers: {
@@ -47,13 +48,17 @@ export default class NotificationService {
 				tx_id: data.tx_id,
 			};
 
-			await client.post(`api/kms/${data.id}/confirm`, body, {
+			await client.post(`${data.callback}/api/kms/${data.id}/confirm`, body, {
 				headers: {
+                    "Content-Type": "application/json",
 					"X-Signature": await this.sign(body),
 				},
 			});
 		} catch (error: any) {
-			console.log(error.message);
+            logger.error({
+                id: data.id,
+                error: error.message,
+            }, `Failed to send notfiication to ${data.callback}`);
 		}
 	}
 

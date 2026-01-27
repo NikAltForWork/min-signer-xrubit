@@ -6,11 +6,28 @@ import ResourcesQueue from "../Polling/Queues/ResourcesQueue";
 import BalanceQueue from "../Polling/Queues/BalanceQueue";
 import ActicationQueue from "../Polling/Queues/ActivationQueue";
 
-interface tronSignParams {
+interface TronSignParams {
 	id: string;
 	to: string;
-	amount: number;
+	amount: string;
 }
+
+interface FinishControlledTransactionParams {
+	address: string,
+	balance: string,
+	id: string,
+}
+
+interface FinishTransactionParams {
+	network: string,
+	currency: string,
+	type: string,
+	address: string,
+	balance: string,
+	id: string,
+    callback: string,
+}
+
 /**
  * Сервис для рвботы с TRX;
  * Также используется для активации кошельков
@@ -25,7 +42,7 @@ export default class TronService extends TronBasicService {
 		super(privateKey, balance_queue, resource_queue, activation_queue);
 	}
 
-	async createAndSignTransfer(params: tronSignParams) {
+	async createAndSignTransfer(params: TronSignParams) {
 		const { to, amount, id } = params;
 
 		try {
@@ -56,16 +73,16 @@ export default class TronService extends TronBasicService {
 		}
 	}
 
-	async finishTransaction(address: string, balance: string, id: string) {
+	async finishTransaction(params: FinishTransactionParams) {
 		try {
-			const data: any = await this.connection.get(`wallet:${address}`);
+			const data: any = await this.connection.get(`wallet:${params.address}`);
 			if (data.privateKey) {
 				const signedTronWeb = new TronWeb({
 					fullHost: config.tron.network,
 					privateKey: data.privateKey,
 					headers: { "TRON-PRO-API-KEY": config.tron.key },
 				});
-				const amountInSun = signedTronWeb.toSun(balance);
+				const amountInSun = signedTronWeb.toSun(params.balance);
 				const address = await this.getAccount();
 				const tx = await signedTronWeb.transactionBuilder.sendTrx(
 					address,
@@ -80,18 +97,14 @@ export default class TronService extends TronBasicService {
 				{
 					error: error.message,
 				},
-				`Transaction ${id} failed`,
+				`Transaction ${params.id} failed`,
 			);
 		}
 	}
 
 	public async finishActivationControl() {}
 
-	public async finishControlledTransaction(
-		address: string,
-		balance: string,
-		id: string,
-	) {}
+	public async finishControlledTransaction(params: FinishControlledTransactionParams) {}
 
 	public async finishFiatToCryptoTransaction() {}
 

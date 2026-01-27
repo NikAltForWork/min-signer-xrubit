@@ -92,6 +92,9 @@ export default class ResourcesWorker {
 		const network = data.network;
 		const currency = data.currency;
 		const type = data.type;
+        const callback = data.callback;
+
+        const to = data.to
 
 		/**
 		 * Проверка на пропускную способность кошелька
@@ -101,7 +104,6 @@ export default class ResourcesWorker {
 
 		let res = await this.tronWeb.trx.getAccountResources(wallet);
 
-		/**
 		let freeLeft = Math.max(
 			0,
 			(res.freeNetLimit ?? 0) - (res.freeNetUsed ?? 0),
@@ -116,7 +118,6 @@ export default class ResourcesWorker {
 		} else {
 			isChecked = 0;
 		}
-        */
 
 		/**
 		 * Проверка энергии кошелька
@@ -132,23 +133,25 @@ export default class ResourcesWorker {
 			isChecked = 0;
 		}
 
+        console.log(targetEnergy);
+
 		if (isChecked === 1) {
 			const service = await this.factory.createCryptoService(
 				network,
 				currency,
 				type,
 			);
-			if (data.isCryptoToFiat === 1) {
-				await service.finishControlledTransaction(wallet, balance, id);
+			if (data.isCryptoToFiat === true) {
+				await service.finishControlledTransaction({address: wallet, balance: balance, id: id});
 			} else {
-				const amount = Number.parseFloat(balance);
 				await service.finishFiatToCryptoTransaction({
 					network: network,
 					currency: currency,
 					type: type,
 					id: id,
-					to: wallet,
-					amount: amount,
+					to: to,
+					amount: balance,
+                    callback: callback
 				});
 			}
 		} else {

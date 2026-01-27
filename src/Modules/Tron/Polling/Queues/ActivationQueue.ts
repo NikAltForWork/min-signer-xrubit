@@ -9,6 +9,7 @@ export interface PollingActivationData {
 	to: string;
 	amount: string;
 	id: string;
+    callback: string
 }
 
 /**

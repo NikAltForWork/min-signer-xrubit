@@ -83,6 +83,7 @@ export default class BalanceWorker {
 		const targetAmount = data.targetAmount;
 		const attempts = data.attempts;
 		const contract = data.contract;
+        const callback = data.callback;
 		let balance: number;
 		let txId: string;
 
@@ -98,6 +99,7 @@ export default class BalanceWorker {
 			txId = await service.getLastTransaction(wallet);
 
 			await this.notification.addJob({
+                callback: callback,
 				wallet: wallet,
 				balance: balance,
 				txId: txId,

@@ -33,8 +33,9 @@ interface StoreKeysBody {
 interface TransactionBody {
 	id: string;
 	address: string;
-	amount: string | number;
+	amount: string;
 	error?: any;
+    callback: string;
 }
 
 interface BalanceBody {
@@ -43,11 +44,13 @@ interface BalanceBody {
 }
 
 interface OneTimeAccountBody {
+    callback: string;
 	amount: number;
 	error?: any;
 }
 
 interface RestartPolingBody {
+    callback: string;
 	wallet: string;
 	amount: number;
 	error?: any;
@@ -61,9 +64,10 @@ interface DebugUsdtBody {
 	error?: any;
 }
 interface FinishTransactionBody {
+    callback: string;
 	id: string;
 	address: string;
-	balance: string | number;
+	balance: string;
 	error?: any;
 }
 
@@ -261,6 +265,7 @@ fastify.post<{
 				targetAmount: request.body.amount,
 				attempts: 1,
 				contract: service.getContract(),
+                callback: request.body.callback,
 			});
 
 			return {
@@ -419,7 +424,7 @@ fastify.post<{
 	): Promise<CreateAccountResponse> => {
 		try {
 			const { network, currency, type } = request.params;
-			const { address, amount, id } = request.body;
+			const { address, amount, id, callback } = request.body;
 
 			if (!address || !amount) {
 				reply.code(400);
@@ -439,8 +444,9 @@ fastify.post<{
 				currency: currency,
 				type: type,
 				to: address,
-				amount: Number(amount),
+				amount: amount,
 				id: id,
+                callback: callback,
 			});
 
 			return {
@@ -472,7 +478,7 @@ fastify.post<{
 		reply: FastifyReply,
 	): Promise<CreateAccountResponse> => {
 		try {
-			const { address, balance, id } = request.body;
+			const { address, balance, id, callback } = request.body;
 			const { network, currency, type } = request.params;
 
 			const service = await cryptoServiceFactory.createCryptoService(
@@ -480,14 +486,15 @@ fastify.post<{
 				currency,
 				type,
 			);
-			const response = await service.finishTransaction(
-				network,
-				currency,
-				type,
-				address,
-				String(balance),
-				id,
-			);
+			const response = await service.finishTransaction({
+				network: network,
+				currency: currency,
+				type: type,
+				address: address,
+				balance: balance,
+				id: id,
+                callback: callback,
+            });
 
 			return {
 				success: true,
@@ -653,7 +660,7 @@ fastify.post<{
 	): Promise<CreateAccountResponse> => {
 		try {
 			const { network, currency, type } = request.params;
-			const { wallet, amount } = request.body;
+			const { wallet, amount, callback } = request.body;
 
 			balance_queue.addJob({
 				network: network,
@@ -662,6 +669,7 @@ fastify.post<{
 				wallet: wallet,
 				targetAmount: amount,
 				attempts: 1,
+                callback: callback,
 			});
 
 			return {

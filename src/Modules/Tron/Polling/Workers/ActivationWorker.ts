@@ -64,6 +64,7 @@ export default class ActivationWorker {
 		const type = data.type;
 		const id = data.id;
 		const amount = data.amount;
+        const callback = data.callback;
 
 		const response = await axios.get(
 			`${config.tron.network}/v1/accounts/${wallet}`,
@@ -87,15 +88,16 @@ export default class ActivationWorker {
 			type,
 		);
 
-		await service.finishActivationControl(
-			network,
-			currency,
-			type,
-			wallet,
-			amount,
-			id,
-            1
-		);
+		await service.finishActivationControl({
+			network: network,
+			currency: currency,
+			type: type,
+			to: wallet,
+			amount: amount,
+			id: id,
+            isCryptoToFiat: true,
+            callback: callback
+        });
 	}
 
 	public async shutdown() {

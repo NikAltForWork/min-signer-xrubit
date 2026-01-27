@@ -7,14 +7,54 @@ import ResourcesQueue from "../Polling/Queues/ResourcesQueue";
 import BalanceQueue from "../Polling/Queues/BalanceQueue";
 import ActivationQueue from "../Polling/Queues/ActivationQueue";
 
-interface usdtSignParams {
+interface UsdtSignParams {
 	network: string;
 	currency: string;
 	type: string;
 	id: string;
 	to: string;
-	amount: number;
+	amount: string;
+    callback: string;
 }
+
+interface FinishTransactionParams {
+	network: string,
+	currency: string,
+	type: string,
+	address: string,
+	balance: string,
+	id: string,
+    callback: string,
+}
+
+interface FinishControlledTransactionParams {
+	address: string,
+	balance: string,
+	id: string,
+}
+
+interface CreateResourceControlledTransactionParams {
+	network: string,
+	currency: string,
+	type: string,
+	to: string,
+	amount: string,
+	id: string,
+    callback: string,
+
+}
+
+interface FinishActivationControlParams {
+	network: string,
+	currency: string,
+	type: string,
+	to: string,
+	amount: string,
+	id: string,
+	isCryptoToFiat: boolean,
+    callback: string
+}
+
 /**
  * Сервис для работы с USDT в сети TRON
  * Поддерживает 2 направления - Крипто-Фиат и Фиат-Крипто.
@@ -38,16 +78,17 @@ export default class USDTService extends TronBasicService {
 	 * Так как Главный Кошелек уже активирован
 	 * сразу запускает запрос ресурсов у Re:Fee
 	 */
-	public async createAndSignTransfer(params: usdtSignParams) {
-		this.finishActivationControl(
-			params.network,
-			params.currency,
-			params.type,
-			params.to,
-			params.amount.toString(),
-			params.id,
-			0,
-		);
+	public async createAndSignTransfer(params: UsdtSignParams) {
+		this.finishActivationControl({
+            network: params.network,
+            currency: params.currency,
+            type: params.type,
+            to: params.to,
+            amount: String(params.amount),
+            id: params.id,
+            isCryptoToFiat: false,
+            callback: params.callback,
+        });
 	}
 
 	/**
@@ -55,8 +96,8 @@ export default class USDTService extends TronBasicService {
 	 * Создает перевод с главного кошелька на
 	 * кошелек клиента.
 	 */
-	public async finishFiatToCryptoTransaction(params: usdtSignParams) {
-		const { to, amount, id } = params;
+	public async finishFiatToCryptoTransaction(params: UsdtSignParams) {
+		const { to, amount, id, callback } = params;
 
 		const functionSelector = "transfer(address,uint256)";
 
@@ -77,9 +118,12 @@ export default class USDTService extends TronBasicService {
 		);
 		const signedTx = await this.tronWeb.trx.sign(tx.transaction);
 
-		await this.tronWeb.trx.sendRawTransaction(signedTx);
+		const response = await this.tronWeb.trx.sendRawTransaction(signedTx);
+
+        console.log(response);
 
 		await this.notifier.notifyStatus({
+            callback: callback,
 			id: id,
 			tx_id: tx.txid,
 		});
@@ -88,31 +132,25 @@ export default class USDTService extends TronBasicService {
 	/**
 	 * метод для обработки вебхука подтверждения с backend
 	 */
-	public async finishTransaction(
-		network: string,
-		currency: string,
-		type: string,
-		address: string,
-		balance: string,
-		id: string,
-	) {
+	public async finishTransaction(params: FinishTransactionParams) {
 		try {
-			logger.info(`Processing transaction - ${id}`);
+			logger.info(`Processing transaction - ${params.id}`);
 
-			await this.createResourceControlledTransaction(
-				network,
-				currency,
-				type,
-				address,
-				balance,
-				id,
-			);
+			await this.createResourceControlledTransaction({
+                network: params.network,
+                currency: params.currency,
+                type: params.type,
+                to: params.address,
+                amount: params.balance,
+                id: params.id,
+                callback: params.callback,
+            });
 		} catch (error: any) {
 			logger.error(
 				{
 					error: error,
 				},
-				`Transaction ${id} failed`,
+				`Transaction ${params.id} failed`,
 			);
 		}
 	}
@@ -123,21 +161,17 @@ export default class USDTService extends TronBasicService {
 	 * Этот метод пересылает валюту с короткоживущего
 	 * временного кошелька на постоянный
 	 */
-	public async finishControlledTransaction(
-		address: string,
-		balance: string,
-		id: string,
-	) {
+	public async finishControlledTransaction(params: FinishControlledTransactionParams) {
 		try {
-			logger.info(`Processing transaction ${id} - Last stage`);
-			const data = await this.connection.get(`wallet:${address}`);
+			logger.info(`Processing transaction ${params.id} - Last stage`);
+			const data = await this.connection.get(`wallet:${params.address}`);
 
 			if (!data) {
 				logger.error(
 					{
-						error: `Key for ${id} is not found`,
+						error: `Key for ${params.id} is not found`,
 					},
-					`Transaction ${id} failed`,
+					`Transaction ${params.id} failed`,
 				);
 				return;
 			}
@@ -155,7 +189,7 @@ export default class USDTService extends TronBasicService {
 
 				const functionSelector = "transfer(address,uint256)";
 
-				const amountInSun = signedTronWeb.toSun(balance);
+				const amountInSun = signedTronWeb.toSun(params.balance);
 
 				const parameter = [
 					{ type: "address", value: to },
@@ -176,8 +210,8 @@ export default class USDTService extends TronBasicService {
 
 				return {
 					txid: tx.txid,
-					to: address,
-					amount: balance,
+					to: params.address,
+					amount: params.balance,
 					rawData: tx.transaction.raw_data,
 					signature: tx.transaction.signature || [],
 				};
@@ -187,7 +221,7 @@ export default class USDTService extends TronBasicService {
 				{
 					error: error.message,
 				},
-				`Transaction ${id} failed`,
+				`Transaction ${params.id} failed`,
 			);
 		}
 	}
@@ -309,30 +343,16 @@ export default class USDTService extends TronBasicService {
 	 * Первый этап транзакции с контролем ресурсов,
 	 * Этот метод запускает проверку активации кошелька
 	 */
-	private async createResourceControlledTransaction(
-		network: string,
-		currency: string,
-		type: string,
-		to: string,
-		amount: string,
-		id: string,
-	) {
+	private async createResourceControlledTransaction(params: CreateResourceControlledTransactionParams) {
 		try {
-			logger.info(`Processing transaction ${id} - First stage`);
-			this.activation_queue.addJob({
-				network: network,
-				currency: currency,
-				type: type,
-				to: to,
-				amount: amount,
-				id: id,
-			});
+			logger.info(`Processing transaction ${params.id} - First stage`);
+			this.activation_queue.addJob(params);
 		} catch (error: any) {
 			logger.info(
 				{
 					error: error.message,
 				},
-				`Transaction ${id} failed`,
+				`Transaction ${params.id} failed`,
 			);
 		}
 	}
@@ -341,38 +361,43 @@ export default class USDTService extends TronBasicService {
 	 * Этот метод вызывается после успешной проверки активации кошелька.
 	 * Этот метод запрашивает ресурсы у Re:Fee и  запускает проверку их поступления.
 	 */
-	public async finishActivationControl(
-		network: string,
-		currency: string,
-		type: string,
-		to: string,
-		amount: string,
-		id: string,
-		isCryptoToFiat: number,
-	) {
+	public async finishActivationControl(params: FinishActivationControlParams) {
 		try {
 			/**
 			 * Пока не решено, нужно ли запрашивать bandwith
 			 * На всякий случай его стоимость тоже расчитывается
 			 */
-			logger.info(`Processing transaction ${id} - Second stage`);
-			const targetBandwidth = await this.calculateBandwidth(amount, to);
-			const targetEnergy = await this.reFee.calculateEnergy(to);
+			logger.info(`Processing transaction ${params.id} - Second stage`);
+			const targetBandwidth = await this.calculateBandwidth(params.amount, params.to);
+			const targetEnergy = await this.reFee.calculateEnergy(params.to);
 
-			await this.reFee.rentResource(to, targetEnergy, "energy", "1h");
+            let wallet;
+            if(params.isCryptoToFiat === true ) {
+                wallet = params.to
+            }
+
+            if(params.isCryptoToFiat === false) {
+                wallet = await this.getAccount();
+            }
+
+			await this.reFee.rentResource(wallet, targetBandwidth, "bandwidth", "1h");
+
+			await this.reFee.rentResource(wallet, targetEnergy, "energy", "1h");
 
 			this.resource_queue.addJob(
 				{
-					id: id,
-					network: network,
-					currency: currency,
-					type: type,
-					wallet: to,
-					balance: amount,
+					id: params.id,
+					network: params.network,
+					currency: params.currency,
+					type: params.type,
+					wallet: wallet,
+                    to: params.to,
+					balance: params.amount,
 					attempts: 1,
-					isCryptoToFiat: isCryptoToFiat,
+					isCryptoToFiat: params.isCryptoToFiat,
 					targetEnergy: targetEnergy,
 					targetBandwidth: targetBandwidth,
+                    callback: params.callback,
 				},
 				Number.parseInt(config.polling.interval, 10),
 			);
@@ -381,7 +406,7 @@ export default class USDTService extends TronBasicService {
 				{
 					error: error.message,
 				},
-				`Transaction ${id} failed`,
+				`Transaction ${params.id} failed`,
 			);
 		}
 	}
@@ -416,7 +441,11 @@ export default class USDTService extends TronBasicService {
 
 		const transactionSize = transaction.transaction.raw_data_hex.length / 2;
 
-		const bandwith = BASE_BANDWIDTH + transactionSize;
+		let bandwith = BASE_BANDWIDTH + transactionSize;
+
+        if (bandwith < 1000) {
+            bandwith = 1000;
+        }
 
 		return Math.ceil(bandwith);
 	}

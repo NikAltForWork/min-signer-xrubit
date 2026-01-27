@@ -13,12 +13,14 @@ export interface PollingResourcesJobData {
 	network: string;
 	currency: string;
 	type: string;
+    to: string;
 	wallet: string;
 	balance: string;
 	attempts: number;
-	isCryptoToFiat: number;
+	isCryptoToFiat: boolean;
 	targetEnergy: number;
 	targetBandwidth: number;
+    callback: string;
 }
 
 /**
