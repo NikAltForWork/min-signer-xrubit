@@ -7,6 +7,7 @@ import { getRedis } from "../../../../Core/redis";
 import CryptoServiceFactory from "../../CryptoServiceFactory";
 import NotificationService from "../../Notification/NotificationService";
 import TronWeb from "tronweb";
+import { logger } from "../../../../Core/logger";
 
 /**
  * Worker для пуллинга ресурсов временного трон кошелька.
@@ -45,6 +46,41 @@ export default class ResourcesWorker {
 				"TRON-PRO-API-KEY": config.tron.key,
 			},
 		});
+
+		this.worker.on("active", (job) => {
+			logger.info(
+				{
+					jobId: job?.id,
+					attempts: job.attemptsMade,
+					action: "job_active",
+					isCryptoToFiat: job.data.isCryptoToFiat,
+				},
+				`Resource check job ${job?.id} for transaction ${job.data.id} is now active`,
+			);
+		});
+
+		this.worker.on("failed", (job, error) => {
+			logger.warn(
+				{
+					jobId: job?.id,
+					error: error.message,
+					attempts: job?.attemptsMade,
+					action: "job_failed",
+				},
+				`Resource check job ${job?.id} marked as Failed`,
+			);
+		});
+
+		this.worker.on("completed", (job) => {
+			logger.debug(
+				{
+					jobId: job?.id,
+					attempts: job.attemptsMade,
+					action: "job_removed",
+				},
+				`Resource check job ${job.id} removed from queue`,
+			);
+		});
 	}
 
 	async pollResourcesJob(data: PollingResourcesJobData) {
@@ -57,13 +93,6 @@ export default class ResourcesWorker {
 		const currency = data.currency;
 		const type = data.type;
 
-		this.notification.notifyLog({
-			level: "info",
-			type: "polling",
-			message: `Ожидание поступления ресурсов на ${wallet}...`,
-			id: id,
-		});
-
 		/**
 		 * Проверка на пропускную способность кошелька
 		 */
@@ -72,7 +101,7 @@ export default class ResourcesWorker {
 
 		let res = await this.tronWeb.trx.getAccountResources(wallet);
 
-        /**
+		/**
 		let freeLeft = Math.max(
 			0,
 			(res.freeNetLimit ?? 0) - (res.freeNetUsed ?? 0),
@@ -104,30 +133,30 @@ export default class ResourcesWorker {
 		}
 
 		if (isChecked === 1) {
-			this.notification.notifyLog({
-				level: "info",
-				type: "polling",
-				message: `Запрос ресурсов успешно завершен, isCryptoToFiat = ${data.isCryptoToFiat}`,
-				id: id,
-			});
 			const service = await this.factory.createCryptoService(
 				network,
 				currency,
 				type,
 			);
-            if(data.isCryptoToFiat === 1) {
-			    await service.finishControlledTransaction(wallet, balance, id);
-            } else {
-                const amount = Number.parseFloat(balance);
-                await service.finishFiatToCryptoTransaction({network: network, currency: currency, type: type, id: id, to: wallet, amount: amount});
-            }
+			if (data.isCryptoToFiat === 1) {
+				await service.finishControlledTransaction(wallet, balance, id);
+			} else {
+				const amount = Number.parseFloat(balance);
+				await service.finishFiatToCryptoTransaction({
+					network: network,
+					currency: currency,
+					type: type,
+					id: id,
+					to: wallet,
+					amount: amount,
+				});
+			}
 		} else {
-            throw new Error("AWAITING_RES");
-        }
+			throw new Error("AWAITING_RES");
+		}
 	}
 
-    async shutdown() {
-        await this.worker.close();
-    }
-
+	async shutdown() {
+		await this.worker.close();
+	}
 }

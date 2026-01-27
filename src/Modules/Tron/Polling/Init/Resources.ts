@@ -12,7 +12,7 @@ const activation_queue = new ActivationQueue();
 const cryptoServiceFactory = new CryptoServiceFactory(
 	balance_queue,
 	resource_queue,
-    activation_queue,
+	activation_queue,
 );
 
 const resourceWorker = new ResourcesWorker(
@@ -22,12 +22,12 @@ const resourceWorker = new ResourcesWorker(
 
 console.log("Resources worker starter");
 
-process.on('SIGTERM', async () => {
-    await resourceWorker.shutdown();
-    process.exit(0);
+process.on("SIGTERM", async () => {
+	await resourceWorker.shutdown();
+	process.exit(0);
 });
 
-process.on('SIGINT', async () => {
-    await resourceWorker.shutdown();
-    process.exit(0);
-})
+process.on("SIGINT", async () => {
+	await resourceWorker.shutdown();
+	process.exit(0);
+});

@@ -1,4 +1,4 @@
-import client from "../../../Core/Client";
+import client from "../../../Core/client";
 import config from "../../../Core/config/config";
 import * as crypto from "node:crypto";
 
@@ -10,8 +10,8 @@ interface NotificationLogData {
 }
 
 interface NotificationStatusData {
-    id: string;
-    tx_id: string;
+	id: string;
+	tx_id: string;
 }
 
 export default class NotificationService {
@@ -27,8 +27,8 @@ export default class NotificationService {
 				},
 			};
 
-            console.log(`Local logs - ${body.message}`);
-            /**
+			console.log(`Local logs - ${body.message}`);
+			/**
 			await client.post("api/kms/log", body, {
 				headers: {
 					"X-Signature": await this.sign(body),
@@ -41,21 +41,21 @@ export default class NotificationService {
 		}
 	}
 
-    public async notifyStatus(data: NotificationStatusData) {
-        try {
-            const body = {
-                tx_id: data.tx_id,
-            }
+	public async notifyStatus(data: NotificationStatusData) {
+		try {
+			const body = {
+				tx_id: data.tx_id,
+			};
 
-           await client.post(`api/kms/${data.id}/confirm`, body, {
-                headers: {
-                    "X-Signature": await this.sign(body),
-                },
-            });
-        } catch(error: any) {
-            console.log(error.message);
-        }
-    }
+			await client.post(`api/kms/${data.id}/confirm`, body, {
+				headers: {
+					"X-Signature": await this.sign(body),
+				},
+			});
+		} catch (error: any) {
+			console.log(error.message);
+		}
+	}
 
 	private async sign(data: any) {
 		const body = JSON.stringify(data);

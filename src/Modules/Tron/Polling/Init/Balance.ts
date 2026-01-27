@@ -14,7 +14,7 @@ const activation_queue = new ActivationQueue();
 const cryptoServiceFactory = new CryptoServiceFactory(
 	balance_queue,
 	resource_queue,
-    activation_queue,
+	activation_queue,
 );
 
 const balanceWorker = new BalanceWorker(
@@ -27,12 +27,11 @@ const balanceWorker = new BalanceWorker(
 console.log("Balance Worker started");
 
 process.on("SIGTERM", async () => {
-    await balanceWorker.shutdown();
-    process.exit(0);
+	await balanceWorker.shutdown();
+	process.exit(0);
 });
 
-process.on('SIGINT', async () => {
-    await balanceWorker.shutdown();
-    process.exit(0);
+process.on("SIGINT", async () => {
+	await balanceWorker.shutdown();
+	process.exit(0);
 });
-

@@ -15,26 +15,26 @@ export default class TronBasicService {
 	protected reFee: ReFeeService;
 	protected balance_queue: BalanceQueue;
 	protected resource_queue: ResourcesQueue;
-    protected activation_queue: ActivationQueue;
+	protected activation_queue: ActivationQueue;
 
 	constructor(
 		privateKey: string,
 		balance_queue: BalanceQueue,
 		resource_queue: ResourcesQueue,
-        activation_queue: ActivationQueue,
+		activation_queue: ActivationQueue,
 	) {
 		this.connection = getRedis();
 		this.privateKey = privateKey;
 		this.network = config.tron.network;
 		this.tronWeb = new TronWeb({
 			fullHost: config.tron.network,
-            privateKey: privateKey,
+			privateKey: privateKey,
 			headers: { "TRON-PRO-API-KEY": config.tron.key },
 		});
 		this.reFee = new ReFeeService();
 		this.balance_queue = balance_queue;
 		this.resource_queue = resource_queue;
-        this.activation_queue = activation_queue;
+		this.activation_queue = activation_queue;
 	}
 
 	async createAccount() {

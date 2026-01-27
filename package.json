@@ -4,11 +4,11 @@
 	"description": "Minimal version of xrubit signer",
 	"main": "server.ts",
 	"scripts": {
-        "start:worker:tron:notification": "node dist/src/Modules/Tron/Notification/Init/Notification.js",
-        "start:worker:tron:balance": "node dist/src/Modules/Tron/Polling/Init/Balance.js",
-        "start:worker:tron:resources": "node dist/src/Modules/Tron/Polling/Init/Resources.js",
-        "start:worker:tron:activation": "node dist/src/Modules/Tron/Polling/Init/Activation.js",
-        "start:workers:dev": "npx nodemon --exec npx ts-node development/dev-workers.ts",
+		"start:worker:tron:notification": "node dist/src/Modules/Tron/Notification/Init/Notification.js",
+		"start:worker:tron:balance": "node dist/src/Modules/Tron/Polling/Init/Balance.js",
+		"start:worker:tron:resources": "node dist/src/Modules/Tron/Polling/Init/Resources.js",
+		"start:worker:tron:activation": "node dist/src/Modules/Tron/Polling/Init/Activation.js",
+		"start:workers:dev": "npx nodemon --exec npx ts-node development/dev-workers.ts",
 		"test": "jest --runInBand",
 		"dev": "nodemon --exec ts-node index.ts",
 		"build": "tsc"
@@ -23,6 +23,7 @@
 		"ethers": "^6.15.0",
 		"fastify": "^5.6.1",
 		"ioredis": "^5.8.2",
+		"pino": "^10.3.0",
 		"tronweb": "^4.1.0",
 		"zod": "^4.1.13"
 	},

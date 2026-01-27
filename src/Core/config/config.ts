@@ -6,6 +6,10 @@ const config = {
 		env: process.env.ENV || "local",
 		port: process.env.PORT || 3000,
 		host: process.env.HOST || "0.0.0.0",
+		timezone: process.env.TZ || "UTC",
+	},
+	logger: {
+		log_level: process.env.LOG_LEVEL,
 	},
 	redis: {
 		host: process.env.REDIS_HOST || "http://app-redis",

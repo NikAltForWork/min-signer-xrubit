@@ -17,7 +17,7 @@ const notificationService = new NotificationService();
 const cryptoServiceFactory = new CryptoServiceFactory(
 	balance_queue,
 	resource_queue,
-    activation_queue,
+	activation_queue,
 );
 const balanceWorker = new BalanceWorker(
 	balance_queue,
@@ -32,23 +32,20 @@ const resourceWorker = new ResourcesWorker(
 
 const notificationWorker = new NotificationWorker();
 
-const activationWorker = new ActivationWorker(
-    cryptoServiceFactory
-);
+const activationWorker = new ActivationWorker(cryptoServiceFactory);
 
 process.on("SIGTERM", async () => {
-    await notificationWorker.shutdown();
-    await balanceWorker.shutdown();
-    await resourceWorker.shutdown();
-    await activationWorker.shutdown();
-    process.exit(0);
+	await notificationWorker.shutdown();
+	await balanceWorker.shutdown();
+	await resourceWorker.shutdown();
+	await activationWorker.shutdown();
+	process.exit(0);
 });
 
 process.on("SIGINT", async () => {
-    await notificationWorker.shutdown();
-    await balanceWorker.shutdown();
-    await resourceWorker.shutdown();
-    await activationWorker.shutdown();
-    process.exit(0);
+	await notificationWorker.shutdown();
+	await balanceWorker.shutdown();
+	await resourceWorker.shutdown();
+	await activationWorker.shutdown();
+	process.exit(0);
 });
-

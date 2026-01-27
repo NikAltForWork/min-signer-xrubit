@@ -1,8 +1,9 @@
 import { Worker } from "bullmq";
 import { NotificationData } from "../Queues/NorificationQueue";
 import { getRedis } from "../../../../Core/redis";
-import client from "../../../../Core/Client";
+import client from "../../../../Core/client";
 import config from "../../../../Core/config/config";
+import { logger } from "../../../../Core/logger";
 import * as crypto from "node:crypto";
 
 /**
@@ -22,6 +23,40 @@ export default class NotificationWorker {
 				connection: getRedis(),
 			},
 		);
+
+		this.worker.on("active", (job) => {
+			logger.info(
+				{
+					jobId: job?.id,
+					attempts: job.attemptsMade,
+					action: "job_active",
+				},
+				`Notification job ${job?.id} is now active`,
+			);
+		});
+
+		this.worker.on("failed", (job, error) => {
+			logger.warn(
+				{
+					jobId: job?.id,
+					error: error.message,
+					attempts: job?.attemptsMade,
+					action: "job_failed",
+				},
+				`Notification job ${job?.id} marked as Failed`,
+			);
+		});
+
+		this.worker.on("completed", (job) => {
+			logger.debug(
+				{
+					jobId: job?.id,
+					attempts: job.attemptsMade,
+					action: "job_removed",
+				},
+				`Notification job ${job.id} removed from queue`,
+			);
+		});
 	}
 
 	private async sendNotification(data: NotificationData) {
@@ -44,8 +79,7 @@ export default class NotificationWorker {
 		return signature;
 	}
 
-    async shutdown() {
-        await this.worker.close();
-    }
-
+	async shutdown() {
+		await this.worker.close();
+	}
 }

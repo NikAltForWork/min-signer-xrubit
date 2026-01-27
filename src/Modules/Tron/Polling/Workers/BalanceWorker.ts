@@ -1,11 +1,11 @@
 import { Worker } from "bullmq";
 import { PollingBalanceJobData } from "../Queues/BalanceQueue";
-import config from "../../../../Core/config/config";
 import { getRedis } from "../../../../Core/redis";
 import CryptoServiceFactory from "../../CryptoServiceFactory";
 import NotificationService from "../../Notification/NotificationService";
 import BalanceQueue from "../Queues/BalanceQueue";
 import NotificationQueue from "../../Notification/Queues/NorificationQueue";
+import { logger } from "../../../../Core/logger";
 
 /**
  * Worker для пуллинга баланса временного трон кошелька.
@@ -38,6 +38,41 @@ export default class BalanceWorker {
 		this.notification = notification;
 		this.log = log;
 		this.queue = queue;
+
+		this.worker.on("active", (job) => {
+			logger.info(
+				{
+					jobId: job.id,
+					attempts: job.attemptsMade,
+					action: "job_active",
+					contract: job.data.contract,
+				},
+				`Balance check job ${job.id} - wallet: ${job.data.wallet}, target ammount: ${job.data.targetAmount}`,
+			);
+		});
+
+		this.worker.on("failed", (job, error) => {
+			logger.warn(
+				{
+					jobId: job?.id,
+					error: error.message,
+					attempts: job?.attemptsMade,
+					action: "job_failed",
+				},
+				`Balance check job ${job?.id} marked as Failed`,
+			);
+		});
+
+		this.worker.on("completed", (job) => {
+			logger.debug(
+				{
+					jobId: job?.id,
+					attempts: job.attemptsMade,
+					action: "job_removed",
+				},
+				`Balance check job ${job.id} removed from queue`,
+			);
+		});
 	}
 
 	async pollBalanceJob(data: PollingBalanceJobData) {
@@ -59,13 +94,6 @@ export default class BalanceWorker {
 
 		balance = Number(await service.getBalanceTR(wallet));
 
-		this.log.notifyLog({
-			type: "tron - polling",
-			level: "info",
-			message: `polling attempt: ${attempts}, balance: ${balance}, targetAmount: ${targetAmount}, wallet: ${wallet}, contract: ${config.tron.usdt_contract}`,
-			id: "",
-		});
-
 		if (balance >= targetAmount) {
 			txId = await service.getLastTransaction(wallet);
 
@@ -78,28 +106,10 @@ export default class BalanceWorker {
 			return;
 		}
 
-		/**
-		 * Фреймворк ограничивает использование throw,
-		 * поэтому проверка количества попыток выполняется вручную
-		 */
-		if (attempts < Number(config.polling.maxAttempts)) {
-			await this.queue.addJob(
-				{
-					network: network,
-					currency: currency,
-					type: type,
-					wallet: wallet,
-					targetAmount: targetAmount,
-					attempts: attempts + 1,
-				},
-				Number.parseInt(config.polling.interval, 10),
-			);
-		}
-		return;
+		throw new Error("BALANCE_NOT_REACHED_TARGET");
 	}
 
-    async shutdown() {
-        await this.worker.close();
-    }
-
+	async shutdown() {
+		await this.worker.close();
+	}
 }

@@ -1,5 +1,6 @@
 import TronWeb from "tronweb";
 import config from "../../../Core/config/config";
+import { logger } from "../../../Core/logger";
 import TronBasicService from "../../../Core/TronBasicService";
 import NotificationService from "../Notification/NotificationService";
 import ResourcesQueue from "../Polling/Queues/ResourcesQueue";
@@ -7,15 +8,16 @@ import BalanceQueue from "../Polling/Queues/BalanceQueue";
 import ActivationQueue from "../Polling/Queues/ActivationQueue";
 
 interface usdtSignParams {
-    network: string,
-    currency: string,
-    type: string,
+	network: string;
+	currency: string;
+	type: string;
 	id: string;
 	to: string;
 	amount: number;
 }
 /**
  * Сервис для работы с USDT в сети TRON
+ * Поддерживает 2 направления - Крипто-Фиат и Фиат-Крипто.
  */
 export default class USDTService extends TronBasicService {
 	public address: string;
@@ -24,37 +26,36 @@ export default class USDTService extends TronBasicService {
 		privateKey: string,
 		resource_queue: ResourcesQueue,
 		balance_queue: BalanceQueue,
-        activation_queue: ActivationQueue,
+		activation_queue: ActivationQueue,
 	) {
 		super(privateKey, balance_queue, resource_queue, activation_queue);
 		this.address = config.tron.usdt_contract;
 		this.notifier = new NotificationService();
 	}
 
-    /**
-     * Первый этап Фиат-Крипто транзакции.
-     * Так как Главный Кошелек уже активирован
-     * сразу запускает запрос ресурсов у Re:Fee
-     */
+	/**
+	 * Первый этап Фиат-Крипто транзакции.
+	 * Так как Главный Кошелек уже активирован
+	 * сразу запускает запрос ресурсов у Re:Fee
+	 */
 	public async createAndSignTransfer(params: usdtSignParams) {
-        this.finishActivationControll(
-            params.network,
-            params.currency,
-            params.type,
-            params.to,
-            params.amount.toString(),
-            params.id,
-            0,
-        );
+		this.finishActivationControl(
+			params.network,
+			params.currency,
+			params.type,
+			params.to,
+			params.amount.toString(),
+			params.id,
+			0,
+		);
 	}
 
-    /**
-    * Последний этап Фиат-Крипто транзакции.
-    * Создает перевод с главного кошелька на
-    * кошелек клиента.
-    */
-    public async finishFiatToCryptoTransaction(params: usdtSignParams) {
-
+	/**
+	 * Последний этап Фиат-Крипто транзакции.
+	 * Создает перевод с главного кошелька на
+	 * кошелек клиента.
+	 */
+	public async finishFiatToCryptoTransaction(params: usdtSignParams) {
 		const { to, amount, id } = params;
 
 		const functionSelector = "transfer(address,uint256)";
@@ -78,15 +79,15 @@ export default class USDTService extends TronBasicService {
 
 		await this.tronWeb.trx.sendRawTransaction(signedTx);
 
-        await this.notifier.notifyStatus({
-            id: id,
-            tx_id: tx.txid
-        });
-    }
+		await this.notifier.notifyStatus({
+			id: id,
+			tx_id: tx.txid,
+		});
+	}
 
-    /**
-    * метод для обработки вебхука подтверждения с backend
-    */
+	/**
+	 * метод для обработки вебхука подтверждения с backend
+	 */
 	public async finishTransaction(
 		network: string,
 		currency: string,
@@ -96,7 +97,8 @@ export default class USDTService extends TronBasicService {
 		id: string,
 	) {
 		try {
-			console.log(`Finishing transaction - ${address} balance is ${balance}`);
+			logger.info(`Processing transaction - ${id}`);
+
 			await this.createResourceControlledTransaction(
 				network,
 				currency,
@@ -106,40 +108,37 @@ export default class USDTService extends TronBasicService {
 				id,
 			);
 		} catch (error: any) {
-			console.log(error.message);
-			this.notifier.notifyLog({
-				type: "tron",
-				level: "error",
-				message: `Failed to finish transaction ${error.message}`,
-				id: id,
-			});
+			logger.error(
+				{
+					error: error,
+				},
+				`Transaction ${id} failed`,
+			);
 		}
 	}
-    /**
-     * Последний этап транзакции с контролем ресурсов.
-     * Этот метод вызывается после проверки на поступление
-     * ресурсов от Re:Fee
-     * Этот метод пересылает валюту с короткоживущего
-     * временного кошелька на постоянный
-    */
+	/**
+	 * Последний этап транзакции с контролем ресурсов.
+	 * Этот метод вызывается после проверки на поступление
+	 * ресурсов от Re:Fee
+	 * Этот метод пересылает валюту с короткоживущего
+	 * временного кошелька на постоянный
+	 */
 	public async finishControlledTransaction(
 		address: string,
 		balance: string,
 		id: string,
 	) {
 		try {
-			console.log(`Controlled transaction - ${id} - Last stage ${address} balance is ${balance}`);
-
+			logger.info(`Processing transaction ${id} - Last stage`);
 			const data = await this.connection.get(`wallet:${address}`);
 
 			if (!data) {
-				console.error(`transaction - ${address} error key not found`);
-				this.notifier.notifyLog({
-					type: "tron",
-					level: "error",
-					message: "Key not found",
-					id: id,
-				});
+				logger.error(
+					{
+						error: `Key for ${id} is not found`,
+					},
+					`Transaction ${id} failed`,
+				);
 				return;
 			}
 
@@ -149,7 +148,7 @@ export default class USDTService extends TronBasicService {
 				const signedTronWeb = new TronWeb({
 					fullHost: config.tron.network,
 					privateKey: data_fn.privateKey,
-			        headers: { "TRON-PRO-API-KEY": config.tron.key },
+					headers: { "TRON-PRO-API-KEY": config.tron.key },
 				});
 
 				const to = await this.getAccount();
@@ -184,13 +183,12 @@ export default class USDTService extends TronBasicService {
 				};
 			}
 		} catch (error: any) {
-			console.log(error.message);
-			this.notifier.notifyLog({
-				type: "tron",
-				level: "error",
-				message: `Failed to finish controlled transaction ${error.message}`,
-				id: id,
-			});
+			logger.info(
+				{
+					error: error.message,
+				},
+				`Transaction ${id} failed`,
+			);
 		}
 	}
 	/**
@@ -219,8 +217,13 @@ export default class USDTService extends TronBasicService {
 				}
 			}
 			return "0";
-		} catch (error) {
-			console.error("Error fetching balance from TronGrid:", error);
+		} catch (error: any) {
+			logger.info(
+				{
+					error: error.message,
+				},
+				`Failed to get balance for ${address}`,
+			);
 			return "0";
 		}
 	}
@@ -241,7 +244,12 @@ export default class USDTService extends TronBasicService {
 			const data = await response.json();
 			return await this.sumTokenAmount(data, this.address);
 		} catch (error: any) {
-			console.log(error.message);
+			logger.info(
+				{
+					error: error.message,
+				},
+				`Failed to get balance for ${address}`,
+			);
 			return "0";
 		}
 	}
@@ -297,10 +305,10 @@ export default class USDTService extends TronBasicService {
 			? `${whole.toString()}.${fracStr}`
 			: whole.toString();
 	}
-    /**
-    * Первый этап транзакции с контролем ресурсов,
-    * Этот метод запускает проверку активации кошелька
-    */
+	/**
+	 * Первый этап транзакции с контролем ресурсов,
+	 * Этот метод запускает проверку активации кошелька
+	 */
 	private async createResourceControlledTransaction(
 		network: string,
 		currency: string,
@@ -310,46 +318,44 @@ export default class USDTService extends TronBasicService {
 		id: string,
 	) {
 		try {
-            console.log(`Transaction ${id} first stage`);
-
-            this.activation_queue.addJob({
-                network: network,
-                currency: currency,
-                type: type,
-                to: to,
-                amount: amount,
-                id: id,
-            });
-		} catch (error: any) {
-			console.error(`Transaction failed - ${error.message}`);
-			this.notifier.notifyLog({
-				type: "tron",
-				level: "error",
-				message: `Resource controlled transaction failed ${error.message}`,
+			logger.info(`Processing transaction ${id} - First stage`);
+			this.activation_queue.addJob({
+				network: network,
+				currency: currency,
+				type: type,
+				to: to,
+				amount: amount,
 				id: id,
 			});
+		} catch (error: any) {
+			logger.info(
+				{
+					error: error.message,
+				},
+				`Transaction ${id} failed`,
+			);
 		}
 	}
-    /**
-    * Второй этап транзакции с контролем ресурсов.
-    * Этот метод вызывается после успешной проверки активации кошелька.
-    * Этот метод запрашивает ресурсы у Re:Fee и  запускает проверку их поступления.
-    */
-    public async finishActivationControll(
-        network: string,
-        currency: string,
+	/**
+	 * Второй этап транзакции с контролем ресурсов.
+	 * Этот метод вызывается после успешной проверки активации кошелька.
+	 * Этот метод запрашивает ресурсы у Re:Fee и  запускает проверку их поступления.
+	 */
+	public async finishActivationControl(
+		network: string,
+		currency: string,
 		type: string,
 		to: string,
 		amount: string,
 		id: string,
-        isCryptoToFiat?: number,
-    ) {
-        try {
-            /**
-            * Пока не решено, нужно ли запрашивать bandwith
-            * На всякий случай его стоимость тоже расчитывается
-            */
-            console.log(`Transaction ${id} second stage`);
+		isCryptoToFiat: number,
+	) {
+		try {
+			/**
+			 * Пока не решено, нужно ли запрашивать bandwith
+			 * На всякий случай его стоимость тоже расчитывается
+			 */
+			logger.info(`Processing transaction ${id} - Second stage`);
 			const targetBandwidth = await this.calculateBandwidth(amount, to);
 			const targetEnergy = await this.reFee.calculateEnergy(to);
 
@@ -364,24 +370,26 @@ export default class USDTService extends TronBasicService {
 					wallet: to,
 					balance: amount,
 					attempts: 1,
-					isCryptoToFiat: isCryptoToFiat || 1,
+					isCryptoToFiat: isCryptoToFiat,
 					targetEnergy: targetEnergy,
 					targetBandwidth: targetBandwidth,
 				},
 				Number.parseInt(config.polling.interval, 10),
 			);
 		} catch (error: any) {
-			console.error(`Transaction failed - ${error.message}`);
-			this.notifier.notifyLog({
-				type: "tron",
-				level: "error",
-				message: `Resource controlled transaction failed ${error.message}`,
-				id: id,
-			});
+			logger.info(
+				{
+					error: error.message,
+				},
+				`Transaction ${id} failed`,
+			);
 		}
-    }
+	}
 
-	private async calculateBandwidth(amount: string, to: string): Promise<number> {
+	private async calculateBandwidth(
+		amount: string,
+		to: string,
+	): Promise<number> {
 		const BASE_BANDWIDTH = 195;
 
 		const functionSelector = "transfer(address,uint256)";
@@ -395,15 +403,16 @@ export default class USDTService extends TronBasicService {
 
 		const address = await this.getAccount();
 
-		const transaction = await this.tronWeb.transactionBuilder.triggerSmartContract(
-			this.address,
-			functionSelector,
-			{
-				feeLimit: config.tron.fee_limit,
-			},
-			parameter,
-			address,
-		);
+		const transaction =
+			await this.tronWeb.transactionBuilder.triggerSmartContract(
+				this.address,
+				functionSelector,
+				{
+					feeLimit: config.tron.fee_limit,
+				},
+				parameter,
+				address,
+			);
 
 		const transactionSize = transaction.transaction.raw_data_hex.length / 2;
 

@@ -1,7 +1,7 @@
 import TronWeb from "tronweb";
 import TronBasicService from "../../../Core/TronBasicService";
 import config from "../../../Core/config/config";
-import NotificationService from "../Notification/NotificationService";
+import { logger } from "../../../Core/logger";
 import ResourcesQueue from "../Polling/Queues/ResourcesQueue";
 import BalanceQueue from "../Polling/Queues/BalanceQueue";
 import ActicationQueue from "../Polling/Queues/ActivationQueue";
@@ -16,16 +16,13 @@ interface tronSignParams {
  * Также используется для активации кошельков
  */
 export default class TronService extends TronBasicService {
-	private notifier: NotificationService;
-
 	constructor(
 		privateKey: string,
 		resource_queue: ResourcesQueue,
 		balance_queue: BalanceQueue,
-        activation_queue: ActicationQueue,
+		activation_queue: ActicationQueue,
 	) {
 		super(privateKey, balance_queue, resource_queue, activation_queue);
-		this.notifier = new NotificationService();
 	}
 
 	async createAndSignTransfer(params: tronSignParams) {
@@ -48,16 +45,14 @@ export default class TronService extends TronBasicService {
 			const signedTx = await signedTronWeb.trx.sign(tx);
 			const result = await signedTronWeb.trx.sendRawTransaction(signedTx);
 
-			console.log(result);
 			return result;
 		} catch (error: any) {
-			this.notifier.notifyLog({
-				type: "tron",
-				level: "info",
-				message: `Failed to transfer TRX ${error.message}`,
-				id: id,
-			});
-			console.error("Transaction error details:", error);
+			logger.info(
+				{
+					error: error.message,
+				},
+				`Transaction ${id} failed`,
+			);
 		}
 	}
 
@@ -81,19 +76,16 @@ export default class TronService extends TronBasicService {
 				return result;
 			}
 		} catch (error: any) {
-			this.notifier.notifyLog({
-				type: "tron",
-				level: "error",
-				message: `Failed to send TRX ${error.message}`,
-				id: id,
-			});
-			console.log(error.message);
+			logger.info(
+				{
+					error: error.message,
+				},
+				`Transaction ${id} failed`,
+			);
 		}
 	}
 
-     public async finishActivationControll() {}
-
-
+	public async finishActivationControl() {}
 
 	public async finishControlledTransaction(
 		address: string,
@@ -101,13 +93,18 @@ export default class TronService extends TronBasicService {
 		id: string,
 	) {}
 
-    public async finishFiatToCryptoTransaction() {}
+	public async finishFiatToCryptoTransaction() {}
 
 	async getBalance(address: string) {
 		try {
 			return await this.tronWeb.trx.getBalance(address);
 		} catch (error: any) {
-			console.log(`Failed to get balance: ${error.message}`);
+			logger.error(
+				{
+					error: error.message,
+				},
+				`Failed to get balance for ${address}`,
+			);
 			return 0;
 		}
 	}

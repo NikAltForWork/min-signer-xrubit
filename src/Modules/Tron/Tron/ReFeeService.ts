@@ -1,6 +1,6 @@
 import axios from "axios";
 import config from "../../../Core/config/config";
-import NotificationService from "../Notification/NotificationService";
+import { logger } from "../../../Core/logger";
 
 interface RentResourceResponse {
 	id: string;
@@ -20,7 +20,6 @@ export default class ReFeeService {
 	private key: string;
 	private base_url: string;
 	private proceed_on_failure: number;
-	private notifyService: NotificationService;
 
 	constructor() {
 		this.key = config.tron.re_fee_api_key;
@@ -29,7 +28,6 @@ export default class ReFeeService {
 			config.tron.should_proceed_on_re_fee_failure,
 			10,
 		);
-		this.notifyService = new NotificationService();
 	}
 
 	public async calculateEnergy(address: string): Promise<number> {
@@ -49,12 +47,12 @@ export default class ReFeeService {
 			if (this.proceed_on_failure === 0) {
 				throw new Error(`Failed to calculate energy price ${error.message}`);
 			} else {
-				this.notifyService.notifyLog({
-					type: "tron - Re:Fee",
-					level: "error",
-					message: `Error in Re:Fee energy cost calculation - ${error.message}`,
-					id: "undefined",
-				});
+				logger.error(
+					{
+						error: error.message,
+					},
+					`Failed to calculate energy cost for ${address}`,
+				);
 				return 0;
 			}
 		}
@@ -91,12 +89,13 @@ export default class ReFeeService {
 			if (this.proceed_on_failure === 0) {
 				throw new Error(`Failed to rent ${resource} ${error.message}`);
 			} else {
-				this.notifyService.notifyLog({
-					type: "tron - Re:Fee",
-					level: "error",
-					message: `Failed to rent ${resource} from Re:Fee - ${error.message}`,
-					id: "undefined",
-				});
+				logger.error(
+					{
+						error: error.message,
+					},
+					`Failed to rent ${resource} from Re:Fee`,
+				);
+
 				return false;
 			}
 		}

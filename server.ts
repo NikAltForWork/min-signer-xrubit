@@ -4,9 +4,10 @@ import Fastify, {
 	type FastifyReply,
 } from "fastify";
 import * as crypto from "node:crypto";
-import { storeKeys, storeTransaction, getBalance } from "./src/Core/Schemas";
+import { storeKeys, storeTransaction, getBalance } from "./src/Core/schemas";
 import config from "./src/Core/config/config";
-import client from "./src/Core/Client";
+import client from "./src/Core/client";
+import { loggerOptions } from "./src/Core/logger";
 import { getRedis } from "./src/Core/redis";
 import NotificationService from "./src/Modules/Tron/Notification/NotificationService";
 import KeyService from "./src/Modules/Keys/KeyService";
@@ -58,7 +59,6 @@ interface DebugUsdtBody {
 	balance?: string | number;
 	txId?: string;
 	error?: any;
-
 }
 interface FinishTransactionBody {
 	id: string;
@@ -80,19 +80,19 @@ interface KeyStoredResponse {
 }
 
 export interface PingResponse {
-  success: boolean;
-  service: string;
-  status: "online";
-  timeStamp: string;
-  uptime: number;
-  memory: {
-    rss: number;
-    heapTotal: number;
-    heapUsed: number;
-    external: number;
-    arrayBuffers: number;
-  };
-  nodeVersion: string;
+	success: boolean;
+	service: string;
+	status: "online";
+	timeStamp: string;
+	uptime: number;
+	memory: {
+		rss: number;
+		heapTotal: number;
+		heapUsed: number;
+		external: number;
+		arrayBuffers: number;
+	};
+	nodeVersion: string;
 }
 
 interface BasicResponse {
@@ -111,10 +111,10 @@ const activation_queue = new ActivationQueue();
 const cryptoServiceFactory = new CryptoServiceFactory(
 	balance_queue,
 	resource_queue,
-    activation_queue,
+	activation_queue,
 );
 const fastify: FastifyInstance = Fastify({
-	logger: true,
+	logger: loggerOptions,
 });
 
 // Middleware для проверки подписи
@@ -126,25 +126,39 @@ fastify.addHook(
 			Params?: RouteParams;
 			Querystring?: any;
 			Headers?: {
+                "x-request-id"?: string;
 				"x-timestamp"?: string;
 				"x-signature"?: string;
 			};
 		}>,
 		reply: FastifyReply,
 	) => {
-        if(request.routeOptions.url === "/ping") {
-            return;
-        }
-
-		const isEnabled = Number.parseInt(config.client.securityEnabled);
-
-		if (isEnabled == 0) {
+		if (request.routeOptions.url === "/ping") {
 			return;
 		}
 
-		const timestamp = request.headers["x-timestamp"]; //Пока не решено, нужны ли timestamp
+		const isEnabled = Number.parseInt(config.client.securityEnabled);
+
+		if (isEnabled === 0) {
+			return;
+		}
+
+        const request_id = request.headers['x-request-id'];
+		const timestamp = request.headers["x-timestamp"];
 		const signature = request.headers["x-signature"];
 		const secret = config.client.secret;
+
+        if(!request_id) {
+            return reply.code(422).send({error: "Missing request id"});
+        }
+
+        const connection = getRedis();
+
+        const ri = await connection.get(`request:${request_id}`);
+
+        if (ri)  return reply.code(409).send({error: "This request already in processing"});
+
+        await connection.set(`request:${request_id}`, request_id, 'EX', 20);
 
 		if (!timestamp || !signature) {
 			return reply.code(401).send({ error: "Missing auth headers" });
@@ -169,12 +183,12 @@ fastify.get(
 		reply: FastifyReply,
 	): Promise<PingResponse> => ({
 		success: true,
-        service: "signer-api",
-        status: "online",
-        timeStamp: new Date().toISOString(),
-        uptime: process.uptime(),
-        memory: process.memoryUsage(),
-        nodeVersion: process.version,
+		service: "signer-api",
+		status: "online",
+		timeStamp: new Date().toISOString(),
+		uptime: process.uptime(),
+		memory: process.memoryUsage(),
+		nodeVersion: process.version,
 	}),
 );
 
@@ -421,9 +435,9 @@ fastify.post<{
 				type,
 			);
 			const result = await service.createAndSignTransfer({
-                network: network,
-                currency: currency,
-                type: type,
+				network: network,
+				currency: currency,
+				type: type,
 				to: address,
 				amount: Number(amount),
 				id: id,

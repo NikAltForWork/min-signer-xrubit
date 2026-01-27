@@ -10,20 +10,19 @@ const activation_queue = new ActivationQueue();
 const cryptoServiceFactory = new CryptoServiceFactory(
 	balance_queue,
 	resource_queue,
-    activation_queue,
+	activation_queue,
 );
 
 const worker = new ActivationWorker(cryptoServiceFactory);
 
 console.log("Activation worker started");
 
-process.on("SIGTERM", async() => {
-    await worker.shutdown();
-    process.exit(0);
-})
+process.on("SIGTERM", async () => {
+	await worker.shutdown();
+	process.exit(0);
+});
 
-process.on('SIGINT', async () => {
-    await worker.shutdown();
-    process.exit(0);
-})
-
+process.on("SIGINT", async () => {
+	await worker.shutdown();
+	process.exit(0);
+});

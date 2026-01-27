@@ -22,8 +22,7 @@ export const storeTransaction = {
 		properties: {
 			address: { type: "string" },
 			amount: { type: "number" },
-            id: { type: "string" },
-
+			id: { type: "string" },
 		},
 		required: ["address", "amount"],
 	},
