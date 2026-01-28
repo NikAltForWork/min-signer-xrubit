@@ -126,8 +126,13 @@ export default class ResourcesWorker {
 			0,
 			(res.EnergyLimit ?? 0) - (res.EnergyUsed ?? 0),
 		);
-
-		if (energyLeft >= targetEnergy) {
+        /**
+        * Re:Fee иногда присылает не точное колличестово энергии
+        * на этот случай считаем успешным пополнение баланса
+        * хотя-бы на 90%
+        */
+        let controlledEnergy = targetEnergy - (targetEnergy * 0.1);
+		if (energyLeft >= controlledEnergy) {
 			// отсюда вызвать другой метод
 		} else {
 			isChecked = 0;
