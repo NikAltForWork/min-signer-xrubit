@@ -4,7 +4,7 @@ import ResourcesQueue, {
 } from "../Queues/ResourcesQueue";
 import config from "../../../../Core/config/config";
 import { getRedis } from "../../../../Core/redis";
-import CryptoServiceFactory from "../../CryptoServiceFactory";
+import CryptoServiceFactory from "../../../CryptoServiceFactory";
 import NotificationService from "../../Notification/NotificationService";
 import TronWeb from "tronweb";
 import { logger } from "../../../../Core/logger";
@@ -92,9 +92,9 @@ export default class ResourcesWorker {
 		const network = data.network;
 		const currency = data.currency;
 		const type = data.type;
-        const callback = data.callback;
+		const callback = data.callback;
 
-        const to = data.to
+		const to = data.to;
 
 		/**
 		 * Проверка на пропускную способность кошелька
@@ -126,19 +126,12 @@ export default class ResourcesWorker {
 			0,
 			(res.EnergyLimit ?? 0) - (res.EnergyUsed ?? 0),
 		);
-        /**
-        * Re:Fee иногда присылает не точное колличестово энергии
-        * на этот случай считаем успешным пополнение баланса
-        * хотя-бы на 90%
-        */
-        let controlledEnergy = targetEnergy - (targetEnergy * 0.1);
-		if (energyLeft >= controlledEnergy) {
+
+		if (energyLeft >= targetEnergy) {
 			// отсюда вызвать другой метод
 		} else {
 			isChecked = 0;
 		}
-
-        console.log(targetEnergy);
 
 		if (isChecked === 1) {
 			const service = await this.factory.createCryptoService(
@@ -147,7 +140,11 @@ export default class ResourcesWorker {
 				type,
 			);
 			if (data.isCryptoToFiat === true) {
-				await service.finishControlledTransaction({address: wallet, balance: balance, id: id});
+				await service.finishControlledTransaction({
+					address: wallet,
+					balance: balance,
+					id: id,
+				});
 			} else {
 				await service.finishFiatToCryptoTransaction({
 					network: network,
@@ -156,7 +153,7 @@ export default class ResourcesWorker {
 					id: id,
 					to: to,
 					amount: balance,
-                    callback: callback
+					callback: callback,
 				});
 			}
 		} else {

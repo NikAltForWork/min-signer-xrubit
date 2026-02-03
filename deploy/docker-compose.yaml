@@ -1,3 +1,19 @@
+x-worker-common: &worker-common
+    build:
+      context: ../
+      dockerfile: deploy/Dockerfile
+    volumes:
+       - shared-storage:/app/storage
+    env_file: .env
+    networks:
+      - exchanger
+    restart: unless-stopped
+    depends_on:
+      redis:
+        condition: service_healthy
+      api:
+        condition: service_healthy
+
 services:
   api:
     build:
@@ -24,76 +40,24 @@ services:
         condition: service_healthy
 
   notification-worker:
-    build:
-      context: ../
-      dockerfile: deploy/Dockerfile
+    <<: *worker-common
     container_name: signer-notification-worker
     command: npm run start:worker:tron:notification
-    restart: unless-stopped
-    volumes:
-      - shared-storage:/app/storage
-    env_file: .env
-    networks:
-      - exchanger
-    depends_on:
-      redis:
-        condition: service_healthy
-      api:
-        condition: service_healthy
 
   balance-worker:
-    build:
-      context: ../
-      dockerfile: deploy/Dockerfile
+    <<: *worker-common
     container_name: signer-balance-worker
-    volumes:
-      - shared-storage:/app/storage
     command: npm run start:worker:tron:balance
-    restart: unless-stopped
-    env_file: .env
-    networks:
-      - exchanger
-    depends_on:
-      redis:
-        condition: service_healthy
-      api:
-        condition: service_healthy
 
   resources-worker:
-    build:
-      context: ../
-      dockerfile: deploy/Dockerfile
+    <<: *worker-common
     container_name: signer-resources-worker
-    volumes:
-      - shared-storage:/app/storage
     command: npm run start:worker:tron:resources
-    restart: unless-stopped
-    env_file: .env
-    networks:
-      - exchanger
-    depends_on:
-      redis:
-        condition: service_healthy
-      api:
-        condition: service_healthy
 
   activation-worker:
-    build:
-      context: ../
-      dockerfile: deploy/Dockerfile
+    <<: *worker-common
     container_name: signer-activation-worker
-    volumes:
-      - shared-storage:/app/storage
     command: npm run start:worker:tron:activation
-    restart: unless-stopped
-    env_file: .env
-    networks:
-      - exchanger
-    depends_on:
-      redis:
-        condition: service_healthy
-      api:
-        condition: service_healthy
 
   redis:
     image: redis:7-alpine
@@ -125,3 +89,5 @@ volumes:
 
 networks:
   exchanger:
+    external: true
+    name: docker_exchanger

@@ -3,6 +3,7 @@ import * as fs from "fs/promises";
 import * as crypto from "node:crypto";
 import type { CipherGCM } from "crypto";
 import config from "../../Core/config/config";
+import { logger } from "../../Core/logger";
 
 const key = config.keys.appKey;
 const algorithm = config.keys.algorithm;
@@ -48,7 +49,7 @@ export default class KeyService {
 				success: true,
 			};
 		} catch (error: any) {
-			console.error("Encryption error:", error.message);
+			logger.error(`Encryption error: ${error.message}`);
 			return {
 				code: error.code,
 				success: false,
@@ -82,7 +83,7 @@ export default class KeyService {
 			const data = await JSON.parse(decrypted);
 			return data.privateKey;
 		} catch (error: any) {
-			console.error("Decryption error:", error.message);
+			logger.error(`Decryption error: ${error.message}`);
 			throw error;
 		}
 	}
@@ -112,7 +113,7 @@ export default class KeyService {
 				success: true,
 			};
 		} catch (error: any) {
-			console.log(error.message);
+			logger.error(`Storage error: ${error.message}`);
 			return {
 				code: error.code,
 				success: false,
@@ -132,7 +133,7 @@ export default class KeyService {
 
 			return data.privateKey;
 		} catch (error: any) {
-			console.log(error);
+			logger.error(`Error retrieving key: ${error.message}`);
 			return false;
 		}
 	}
@@ -149,7 +150,7 @@ export default class KeyService {
 				return false;
 			}
 		} catch (error: any) {
-			console.log(error.message);
+			logger.error(`Error checking if key is stored: ${error.message}`);
 		}
 	}
 
@@ -165,7 +166,7 @@ export default class KeyService {
 				return false;
 			}
 		} catch (error: any) {
-			console.log(error.message);
+			logger.error(`Error checking if key is encrypted: ${error.message}`);
 		}
 	}
 }

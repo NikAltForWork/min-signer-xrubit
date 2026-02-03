@@ -1,5 +1,5 @@
 import ActivationWorker from "../Workers/ActivationWorker";
-import CryptoServiceFactory from "../../CryptoServiceFactory";
+import CryptoServiceFactory from "../../../CryptoServiceFactory";
 import BalanceQueue from "../Queues/BalanceQueue";
 import ResourcesQueue from "../Queues/ResourcesQueue";
 import ActivationQueue from "../Queues/ActivationQueue";

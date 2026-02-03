@@ -13,14 +13,14 @@ export interface PollingResourcesJobData {
 	network: string;
 	currency: string;
 	type: string;
-    to: string;
+	to: string;
 	wallet: string;
 	balance: string;
 	attempts: number;
 	isCryptoToFiat: boolean;
 	targetEnergy: number;
 	targetBandwidth: number;
-    callback: string;
+	callback: string;
 }
 
 /**
@@ -30,7 +30,7 @@ export interface PollingResourcesJobData {
  */
 
 export default class ResourcesQueue {
-	public queue: Queue<PollingResourcesJobData>;
+	private queue: Queue<PollingResourcesJobData>;
 
 	constructor() {
 		this.queue = new Queue<PollingResourcesJobData>("polling-resources", {
@@ -47,7 +47,11 @@ export default class ResourcesQueue {
 		});
 	}
 
-	async addJob(data: PollingResourcesJobData, delay?: number) {
+	public async addJob(
+		data: PollingResourcesJobData,
+		id: string,
+		delay?: number,
+	) {
 		return this.queue.add("polling-resources", data, {
 			delay: delay || 0,
 			attempts: Number.parseInt(config.polling.maxAttempts, 10),
@@ -55,6 +59,17 @@ export default class ResourcesQueue {
 				type: "fixed",
 				delay: Number.parseInt(config.polling.interval, 10),
 			},
+			jobId: id,
 		});
+	}
+
+	public async removeJob(id: string): Promise<boolean> {
+		const job = await this.queue.getJob(id);
+
+		if (job) {
+			await job.remove();
+			return true;
+		}
+		return false;
 	}
 }

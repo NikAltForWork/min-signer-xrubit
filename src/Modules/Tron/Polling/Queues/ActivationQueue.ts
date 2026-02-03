@@ -9,7 +9,7 @@ export interface PollingActivationData {
 	to: string;
 	amount: string;
 	id: string;
-    callback: string
+	callback: string;
 }
 
 /**
@@ -30,7 +30,7 @@ export default class ActivationQueue {
 		});
 	}
 
-	async addJob(data: PollingActivationData, delay?: number) {
+	public async addJob(data: PollingActivationData, id: string, delay?: number) {
 		return this.queue.add("polling-activation", data, {
 			delay: delay || 10,
 			attempts: Number.parseInt(config.polling.maxAttempts, 10),
@@ -38,6 +38,18 @@ export default class ActivationQueue {
 				type: "fixed",
 				delay: Number.parseInt(config.polling.interval, 10),
 			},
+			jobId: id,
 		});
+	}
+
+	public async removeJob(id: string): Promise<boolean> {
+		const job = await this.queue.getJob(id);
+
+		if (!job) {
+			return false;
+		}
+
+        await job.remove();
+		return true;
 	}
 }

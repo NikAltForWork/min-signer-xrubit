@@ -6,7 +6,7 @@ export interface NotificationData {
 	balance: number;
 	txId: string;
 	contract?: string;
-    callback: string;
+	callback: string;
 }
 /**
  * Очередь для сообщений об успешной оплате

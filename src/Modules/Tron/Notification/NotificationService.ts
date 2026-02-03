@@ -11,7 +11,7 @@ interface NotificationLogData {
 }
 
 interface NotificationStatusData {
-    callback: string;
+	callback: string;
 	id: string;
 	tx_id: string;
 }
@@ -50,15 +50,18 @@ export default class NotificationService {
 
 			await client.post(`${data.callback}/api/kms/${data.id}/confirm`, body, {
 				headers: {
-                    "Content-Type": "application/json",
+					"Content-Type": "application/json",
 					"X-Signature": await this.sign(body),
 				},
 			});
 		} catch (error: any) {
-            logger.error({
-                id: data.id,
-                error: error.message,
-            }, `Failed to send notfiication to ${data.callback}`);
+			logger.error(
+				{
+					id: data.id,
+					error: error.message,
+				},
+				`Failed to send notfiication to ${data.callback}`,
+			);
 		}
 	}
 

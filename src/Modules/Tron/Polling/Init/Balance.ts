@@ -1,4 +1,4 @@
-import CryptoServiceFactory from "../../CryptoServiceFactory";
+import CryptoServiceFactory from "../../../CryptoServiceFactory";
 import NotificationService from "../../Notification/NotificationService";
 import NotificationQueue from "../../Notification/Queues/NorificationQueue";
 import ActivationQueue from "../Queues/ActivationQueue";

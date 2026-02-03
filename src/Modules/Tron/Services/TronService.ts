@@ -13,19 +13,19 @@ interface TronSignParams {
 }
 
 interface FinishControlledTransactionParams {
-	address: string,
-	balance: string,
-	id: string,
+	address: string;
+	balance: string;
+	id: string;
 }
 
 interface FinishTransactionParams {
-	network: string,
-	currency: string,
-	type: string,
-	address: string,
-	balance: string,
-	id: string,
-    callback: string,
+	network: string;
+	currency: string;
+	type: string;
+	address: string;
+	balance: string;
+	id: string;
+	callback: string;
 }
 
 /**
@@ -104,7 +104,9 @@ export default class TronService extends TronBasicService {
 
 	public async finishActivationControl() {}
 
-	public async finishControlledTransaction(params: FinishControlledTransactionParams) {}
+	public async finishControlledTransaction(
+		params: FinishControlledTransactionParams,
+	) {}
 
 	public async finishFiatToCryptoTransaction() {}
 
@@ -123,7 +125,7 @@ export default class TronService extends TronBasicService {
 	}
 
 	async getBalanceTR(address: string) {
-		console.log(address);
+		//console.log(address);
 	}
 
 	public getContract() {

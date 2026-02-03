@@ -14,45 +14,44 @@ interface UsdtSignParams {
 	id: string;
 	to: string;
 	amount: string;
-    callback: string;
+	callback: string;
 }
 
 interface FinishTransactionParams {
-	network: string,
-	currency: string,
-	type: string,
-	address: string,
-	balance: string,
-	id: string,
-    callback: string,
+	network: string;
+	currency: string;
+	type: string;
+	address: string;
+	balance: string;
+	id: string;
+	callback: string;
 }
 
 interface FinishControlledTransactionParams {
-	address: string,
-	balance: string,
-	id: string,
+	address: string;
+	balance: string;
+	id: string;
 }
 
 interface CreateResourceControlledTransactionParams {
-	network: string,
-	currency: string,
-	type: string,
-	to: string,
-	amount: string,
-	id: string,
-    callback: string,
-
+	network: string;
+	currency: string;
+	type: string;
+	to: string;
+	amount: string;
+	id: string;
+	callback: string;
 }
 
 interface FinishActivationControlParams {
-	network: string,
-	currency: string,
-	type: string,
-	to: string,
-	amount: string,
-	id: string,
-	isCryptoToFiat: boolean,
-    callback: string
+	network: string;
+	currency: string;
+	type: string;
+	to: string;
+	amount: string;
+	id: string;
+	isCryptoToFiat: boolean;
+	callback: string;
 }
 
 /**
@@ -80,15 +79,15 @@ export default class USDTService extends TronBasicService {
 	 */
 	public async createAndSignTransfer(params: UsdtSignParams) {
 		this.finishActivationControl({
-            network: params.network,
-            currency: params.currency,
-            type: params.type,
-            to: params.to,
-            amount: String(params.amount),
-            id: params.id,
-            isCryptoToFiat: false,
-            callback: params.callback,
-        });
+			network: params.network,
+			currency: params.currency,
+			type: params.type,
+			to: params.to,
+			amount: String(params.amount),
+			id: params.id,
+			isCryptoToFiat: false,
+			callback: params.callback,
+		});
 	}
 
 	/**
@@ -118,12 +117,10 @@ export default class USDTService extends TronBasicService {
 		);
 		const signedTx = await this.tronWeb.trx.sign(tx.transaction);
 
-		const response = await this.tronWeb.trx.sendRawTransaction(signedTx);
-
-        console.log(response);
+		await this.tronWeb.trx.sendRawTransaction(signedTx);
 
 		await this.notifier.notifyStatus({
-            callback: callback,
+			callback: callback,
 			id: id,
 			tx_id: tx.txid,
 		});
@@ -137,14 +134,14 @@ export default class USDTService extends TronBasicService {
 			logger.info(`Processing transaction - ${params.id}`);
 
 			await this.createResourceControlledTransaction({
-                network: params.network,
-                currency: params.currency,
-                type: params.type,
-                to: params.address,
-                amount: params.balance,
-                id: params.id,
-                callback: params.callback,
-            });
+				network: params.network,
+				currency: params.currency,
+				type: params.type,
+				to: params.address,
+				amount: params.balance,
+				id: params.id,
+				callback: params.callback,
+			});
 		} catch (error: any) {
 			logger.error(
 				{
@@ -161,7 +158,9 @@ export default class USDTService extends TronBasicService {
 	 * Этот метод пересылает валюту с короткоживущего
 	 * временного кошелька на постоянный
 	 */
-	public async finishControlledTransaction(params: FinishControlledTransactionParams) {
+	public async finishControlledTransaction(
+		params: FinishControlledTransactionParams,
+	) {
 		try {
 			logger.info(`Processing transaction ${params.id} - Last stage`);
 			const data = await this.connection.get(`wallet:${params.address}`);
@@ -343,10 +342,12 @@ export default class USDTService extends TronBasicService {
 	 * Первый этап транзакции с контролем ресурсов,
 	 * Этот метод запускает проверку активации кошелька
 	 */
-	private async createResourceControlledTransaction(params: CreateResourceControlledTransactionParams) {
+	private async createResourceControlledTransaction(
+		params: CreateResourceControlledTransactionParams,
+	) {
 		try {
 			logger.info(`Processing transaction ${params.id} - First stage`);
-			this.activation_queue.addJob(params);
+			this.activation_queue.addJob(params, params.id);
 		} catch (error: any) {
 			logger.info(
 				{
@@ -363,24 +364,30 @@ export default class USDTService extends TronBasicService {
 	 */
 	public async finishActivationControl(params: FinishActivationControlParams) {
 		try {
-			/**
-			 * Пока не решено, нужно ли запрашивать bandwith
-			 * На всякий случай его стоимость тоже расчитывается
-			 */
+
 			logger.info(`Processing transaction ${params.id} - Second stage`);
-			const targetBandwidth = await this.calculateBandwidth(params.amount, params.to);
+			const targetBandwidth = await this.calculateBandwidth(
+				params.amount,
+				params.to,
+			);
 			const targetEnergy = await this.reFee.calculateEnergy(params.to);
 
-            let wallet;
-            if(params.isCryptoToFiat === true ) {
-                wallet = params.to
-            }
+			let wallet;
+			if (params.isCryptoToFiat === true) {
+				wallet = params.to;
+			}
 
-            if(params.isCryptoToFiat === false) {
-                wallet = await this.getAccount();
-            }
+			if (params.isCryptoToFiat === false) {
+				wallet = await this.getAccount();
+			}
 
-			await this.reFee.rentResource(wallet, targetBandwidth, "bandwidth", "1h");
+            /**
+            * Для Крипто-Фиат транзкций используем
+            * родной bandwidth
+            */
+            if (params.isCryptoToFiat === false) {
+			    await this.reFee.rentResource(wallet, targetBandwidth, "bandwidth", "1h");
+            }
 
 			await this.reFee.rentResource(wallet, targetEnergy, "energy", "1h");
 
@@ -391,14 +398,15 @@ export default class USDTService extends TronBasicService {
 					currency: params.currency,
 					type: params.type,
 					wallet: wallet,
-                    to: params.to,
+					to: params.to,
 					balance: params.amount,
 					attempts: 1,
 					isCryptoToFiat: params.isCryptoToFiat,
 					targetEnergy: targetEnergy,
 					targetBandwidth: targetBandwidth,
-                    callback: params.callback,
+					callback: params.callback,
 				},
+				params.id,
 				Number.parseInt(config.polling.interval, 10),
 			);
 		} catch (error: any) {
@@ -443,9 +451,9 @@ export default class USDTService extends TronBasicService {
 
 		let bandwith = BASE_BANDWIDTH + transactionSize;
 
-        if (bandwith < 1000) {
-            bandwith = 1000;
-        }
+		if (bandwith < 1000) {
+			bandwith = 1000;
+		}
 
 		return Math.ceil(bandwith);
 	}

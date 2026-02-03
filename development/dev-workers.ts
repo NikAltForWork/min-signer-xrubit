@@ -6,7 +6,7 @@ import NotificationQueue from "../src/Modules/Tron/Notification/Queues/Norificat
 import NotificationService from "../src/Modules/Tron/Notification/NotificationService";
 import BalanceQueue from "../src/Modules/Tron/Polling/Queues/BalanceQueue";
 import ResourcesQueue from "../src/Modules/Tron/Polling/Queues/ResourcesQueue";
-import CryptoServiceFactory from "../src/Modules/Tron/CryptoServiceFactory";
+import CryptoServiceFactory from "../src/Modules/CryptoServiceFactory";
 import ActivationQueue from "../src/Modules/Tron/Polling/Queues/ActivationQueue";
 
 const balance_queue = new BalanceQueue();

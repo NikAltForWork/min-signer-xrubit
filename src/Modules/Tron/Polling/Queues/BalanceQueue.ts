@@ -13,7 +13,7 @@ export interface PollingBalanceJobData {
 	targetAmount: number;
 	attempts: number;
 	contract?: string;
-    callback: string;
+	callback: string;
 }
 
 /**
@@ -22,7 +22,7 @@ export interface PollingBalanceJobData {
  * на временный кошелек перед переходом на мледующий этап.
  */
 export default class BalanceQueue {
-	public queue: Queue<PollingBalanceJobData>;
+	private queue: Queue<PollingBalanceJobData>;
 
 	constructor() {
 		this.queue = new Queue<PollingBalanceJobData>("polling-balance", {
@@ -34,7 +34,7 @@ export default class BalanceQueue {
 		});
 	}
 
-	async addJob(data: PollingBalanceJobData, delay?: number) {
+	public async addJob(data: PollingBalanceJobData, id: string, delay?: number) {
 		return this.queue.add("polling-balance", data, {
 			delay: delay || 0,
 			attempts: Number.parseInt(config.polling.maxAttempts, 10),
@@ -42,6 +42,19 @@ export default class BalanceQueue {
 				type: "fixed",
 				delay: Number.parseInt(config.polling.interval, 10),
 			},
+			jobId: id,
 		});
 	}
+
+	public async removeJob(id: string): Promise<boolean> {
+		const job = await this.queue.getJob(id);
+
+		if (!job) {
+			return false;
+		}
+
+        await job.remove();
+		return true;
+	}
+
 }

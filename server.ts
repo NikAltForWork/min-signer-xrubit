@@ -14,14 +14,20 @@ import KeyService from "./src/Modules/Keys/KeyService";
 import NotificationQueue from "./src/Modules/Tron/Notification/Queues/NorificationQueue";
 import BalanceQueue from "./src/Modules/Tron/Polling/Queues/BalanceQueue";
 import ResourcesQueue from "./src/Modules/Tron/Polling/Queues/ResourcesQueue";
-import CryptoServiceFactory from "./src/Modules/Tron/CryptoServiceFactory";
+import CryptoServiceFactory from "./src/Modules/CryptoServiceFactory";
 import ActivationQueue from "./src/Modules/Tron/Polling/Queues/ActivationQueue";
+import TransactionServiceFactory from "./src/Modules/TransactionServiceFactory";
 
 interface RouteParams {
 	network: string;
 	currency: string;
 	type: string;
 	error?: any;
+}
+
+interface CancelParams {
+	network: string;
+	id: string;
 }
 
 interface StoreKeysBody {
@@ -35,7 +41,7 @@ interface TransactionBody {
 	address: string;
 	amount: string;
 	error?: any;
-    callback: string;
+	callback: string;
 }
 
 interface BalanceBody {
@@ -44,13 +50,15 @@ interface BalanceBody {
 }
 
 interface OneTimeAccountBody {
-    callback: string;
+	id: string;
+	callback: string;
 	amount: number;
 	error?: any;
 }
 
 interface RestartPolingBody {
-    callback: string;
+	id: string;
+	callback: string;
 	wallet: string;
 	amount: number;
 	error?: any;
@@ -64,8 +72,8 @@ interface DebugUsdtBody {
 	error?: any;
 }
 interface FinishTransactionBody {
-    callback: string;
 	id: string;
+	callback: string;
 	address: string;
 	balance: string;
 	error?: any;
@@ -112,6 +120,13 @@ const balance_queue = new BalanceQueue();
 const resource_queue = new ResourcesQueue();
 const notification_queue = new NotificationQueue();
 const activation_queue = new ActivationQueue();
+
+const transactionServiceFactory = new TransactionServiceFactory(
+	balance_queue,
+	resource_queue,
+	activation_queue,
+);
+
 const cryptoServiceFactory = new CryptoServiceFactory(
 	balance_queue,
 	resource_queue,
@@ -130,13 +145,14 @@ fastify.addHook(
 			Params?: RouteParams;
 			Querystring?: any;
 			Headers?: {
-                "x-request-id"?: string;
+				"x-request-id"?: string;
 				"x-timestamp"?: string;
 				"x-signature"?: string;
 			};
 		}>,
 		reply: FastifyReply,
 	) => {
+
 		if (request.routeOptions.url === "/ping") {
 			return;
 		}
@@ -147,22 +163,25 @@ fastify.addHook(
 			return;
 		}
 
-        const request_id = request.headers['x-request-id'];
+		const request_id = request.headers["x-request-id"];
 		const timestamp = request.headers["x-timestamp"];
 		const signature = request.headers["x-signature"];
 		const secret = config.client.secret;
 
-        if(!request_id) {
-            return reply.code(422).send({error: "Missing request id"});
-        }
+		if (!request_id) {
+			return reply.code(422).send({ error: "Missing request id" });
+		}
 
-        const connection = getRedis();
+		const connection = getRedis();
 
-        const ri = await connection.get(`request:${request_id}`);
+		const ri = await connection.get(`request:${request_id}`);
 
-        if (ri)  return reply.code(409).send({error: "This request already in processing"});
+		if (ri)
+			return reply
+				.code(409)
+				.send({ error: "This request already in processing" });
 
-        await connection.set(`request:${request_id}`, request_id, 'EX', 20);
+		await connection.set(`request:${request_id}`, request_id, "EX", 20);
 
 		if (!timestamp || !signature) {
 			return reply.code(401).send({ error: "Missing auth headers" });
@@ -174,7 +193,7 @@ fastify.addHook(
 			.update(timestamp + payload)
 			.digest("hex");
 
-		if (expected !== signature) {
+   		if (expected !== signature) {
 			return reply.code(401).send({ error: "Invalid signature" });
 		}
 	},
@@ -257,16 +276,19 @@ fastify.post<{
 				"NX",
 			);
 
-			balance_queue.addJob({
-				network: network,
-				currency: currency,
-				type: type,
-				wallet: wallet.address.base58,
-				targetAmount: request.body.amount,
-				attempts: 1,
-				contract: service.getContract(),
-                callback: request.body.callback,
-			});
+			balance_queue.addJob(
+				{
+					network: network,
+					currency: currency,
+					type: type,
+					wallet: wallet.address.base58,
+					targetAmount: request.body.amount,
+					attempts: 1,
+					contract: service.getContract(),
+					callback: request.body.callback,
+				},
+				request.body.id,
+			);
 
 			return {
 				success: true,
@@ -411,6 +433,27 @@ fastify.get<{
 	},
 );
 
+fastify.post<{
+	Params: CancelParams;
+}>(
+	"/transactions/:network/:id/cancel",
+	async (
+		request: FastifyRequest<{ Params: CancelParams }>,
+		reply: FastifyReply,
+	) => {
+		const network = request.params.network;
+
+        const id = request.params.id;
+
+		const service =
+			await transactionServiceFactory.createTransactionService(network);
+
+		await service.cancelTransaction(id);
+
+		reply.code(200).send();
+	},
+);
+
 // Создание транзакции
 fastify.post<{
 	Params: RouteParams;
@@ -446,7 +489,7 @@ fastify.post<{
 				to: address,
 				amount: amount,
 				id: id,
-                callback: callback,
+				callback: callback,
 			});
 
 			return {
@@ -492,9 +535,9 @@ fastify.post<{
 				type: type,
 				address: address,
 				balance: balance,
+				callback: callback,
 				id: id,
-                callback: callback,
-            });
+			});
 
 			return {
 				success: true,
@@ -660,17 +703,20 @@ fastify.post<{
 	): Promise<CreateAccountResponse> => {
 		try {
 			const { network, currency, type } = request.params;
-			const { wallet, amount, callback } = request.body;
+			const { wallet, amount, callback, id } = request.body;
 
-			balance_queue.addJob({
-				network: network,
-				currency: currency,
-				type: type,
-				wallet: wallet,
-				targetAmount: amount,
-				attempts: 1,
-                callback: callback,
-			});
+			balance_queue.addJob(
+				{
+					network: network,
+					currency: currency,
+					type: type,
+					wallet: wallet,
+					targetAmount: amount,
+					attempts: 1,
+					callback: callback,
+				},
+				id,
+			);
 
 			return {
 				success: true,

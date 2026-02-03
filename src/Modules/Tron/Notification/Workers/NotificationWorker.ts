@@ -60,12 +60,17 @@ export default class NotificationWorker {
 	}
 
 	private async sendNotification(data: NotificationData) {
-		await client.post(`${data.callback}/api/transactions/webhook/payments`, data, {
-			headers: {
-				"Content-Type": "application/json",
-				"X-Signature": await this.sign(data),
+        logger.info(`Sending notification to ${data.callback}`);
+		await client.post(
+			`${data.callback}/api/transactions/webhook/payments`,
+			data,
+			{
+				headers: {
+					"Content-Type": "application/json",
+					"X-Signature": await this.sign(data),
+				},
 			},
-		});
+		);
 	}
 
 	private async sign(data: any) {

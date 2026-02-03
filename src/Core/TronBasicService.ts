@@ -2,7 +2,7 @@ import TronWeb from "tronweb";
 import type { RedisCommander } from "ioredis";
 import { getRedis } from "./redis";
 import config from "./config/config";
-import ReFeeService from "../Modules/Tron/Tron/ReFeeService";
+import ReFeeService from "../Modules/Tron/Services/ReFeeService";
 import BalanceQueue from "../Modules/Tron/Polling/Queues/BalanceQueue";
 import ResourcesQueue from "../Modules/Tron/Polling/Queues/ResourcesQueue";
 import ActivationQueue from "../Modules/Tron/Polling/Queues/ActivationQueue";

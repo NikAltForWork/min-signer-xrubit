@@ -1,9 +1,9 @@
-import KeyService from "../Keys/KeyService";
-import USDTService from "./Tron/USDTService";
-import TronService from "./Tron/TronService";
-import BalanceQueue from "./Polling/Queues/BalanceQueue";
-import ResourcesQueue from "./Polling/Queues/ResourcesQueue";
-import ActivationQueue from "./Polling/Queues/ActivationQueue";
+import KeyService from "./Keys/KeyService";
+import USDTService from "./Tron/Services/USDTService";
+import TronService from "./Tron/Services/TronService";
+import BalanceQueue from "./Tron/Polling/Queues/BalanceQueue";
+import ResourcesQueue from "./Tron/Polling/Queues/ResourcesQueue";
+import ActivationQueue from "./Tron/Polling/Queues/ActivationQueue";
 
 export default class CryptoServiceFactory {
 	protected balance_queue: BalanceQueue;

@@ -1,7 +1,7 @@
 import { Worker } from "bullmq";
 import { PollingBalanceJobData } from "../Queues/BalanceQueue";
 import { getRedis } from "../../../../Core/redis";
-import CryptoServiceFactory from "../../CryptoServiceFactory";
+import CryptoServiceFactory from "../../../CryptoServiceFactory";
 import NotificationService from "../../Notification/NotificationService";
 import BalanceQueue from "../Queues/BalanceQueue";
 import NotificationQueue from "../../Notification/Queues/NorificationQueue";
@@ -83,7 +83,7 @@ export default class BalanceWorker {
 		const targetAmount = data.targetAmount;
 		const attempts = data.attempts;
 		const contract = data.contract;
-        const callback = data.callback;
+		const callback = data.callback;
 		let balance: number;
 		let txId: string;
 
@@ -99,7 +99,7 @@ export default class BalanceWorker {
 			txId = await service.getLastTransaction(wallet);
 
 			await this.notification.addJob({
-                callback: callback,
+				callback: callback,
 				wallet: wallet,
 				balance: balance,
 				txId: txId,

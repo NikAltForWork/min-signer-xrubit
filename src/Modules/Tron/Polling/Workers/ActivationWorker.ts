@@ -1,7 +1,7 @@
 import { Worker } from "bullmq";
 import axios from "axios";
 import { PollingActivationData } from "../Queues/ActivationQueue";
-import CryptoServiceFactory from "../../CryptoServiceFactory";
+import CryptoServiceFactory from "../../../CryptoServiceFactory";
 import { getRedis } from "../../../../Core/redis";
 import config from "../../../../Core/config/config";
 import { logger } from "../../../../Core/logger";
@@ -64,7 +64,7 @@ export default class ActivationWorker {
 		const type = data.type;
 		const id = data.id;
 		const amount = data.amount;
-        const callback = data.callback;
+		const callback = data.callback;
 
 		const response = await axios.get(
 			`${config.tron.network}/v1/accounts/${wallet}`,
@@ -95,9 +95,9 @@ export default class ActivationWorker {
 			to: wallet,
 			amount: amount,
 			id: id,
-            isCryptoToFiat: true,
-            callback: callback
-        });
+			isCryptoToFiat: true,
+			callback: callback,
+		});
 	}
 
 	public async shutdown() {
