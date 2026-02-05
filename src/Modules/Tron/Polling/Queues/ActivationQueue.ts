@@ -49,7 +49,7 @@ export default class ActivationQueue {
 			return false;
 		}
 
-        await job.remove();
+		await job.remove();
 		return true;
 	}
 }

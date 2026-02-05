@@ -18,6 +18,11 @@ import CryptoServiceFactory from "./src/Modules/CryptoServiceFactory";
 import ActivationQueue from "./src/Modules/Tron/Polling/Queues/ActivationQueue";
 import TransactionServiceFactory from "./src/Modules/TransactionServiceFactory";
 
+/**
+ * Сервис разросся слишком сильно
+ * нужно внедрить базу данных
+ */
+
 interface RouteParams {
 	network: string;
 	currency: string;
@@ -152,7 +157,6 @@ fastify.addHook(
 		}>,
 		reply: FastifyReply,
 	) => {
-
 		if (request.routeOptions.url === "/ping") {
 			return;
 		}
@@ -193,7 +197,7 @@ fastify.addHook(
 			.update(timestamp + payload)
 			.digest("hex");
 
-   		if (expected !== signature) {
+		if (expected !== signature) {
 			return reply.code(401).send({ error: "Invalid signature" });
 		}
 	},
@@ -443,7 +447,7 @@ fastify.post<{
 	) => {
 		const network = request.params.network;
 
-        const id = request.params.id;
+		const id = request.params.id;
 
 		const service =
 			await transactionServiceFactory.createTransactionService(network);

@@ -7,9 +7,13 @@ import BalanceQueue from "../Polling/Queues/BalanceQueue";
 import ActicationQueue from "../Polling/Queues/ActivationQueue";
 
 interface TronSignParams {
+	network: string;
+	currency: string;
+	type: string;
 	id: string;
 	to: string;
 	amount: string;
+	callback: string;
 }
 
 interface FinishControlledTransactionParams {
@@ -42,9 +46,60 @@ export default class TronService extends TronBasicService {
 		super(privateKey, balance_queue, resource_queue, activation_queue);
 	}
 
+	/**
+	 * Первый этап транзакции в TRX
+	 * Запрос и ожидание bandwidth
+	 */
 	async createAndSignTransfer(params: TronSignParams) {
-		const { to, amount, id } = params;
+		logger.debug(`Processing TRX transaction ${params.id} first stage`);
+		const addressFrom = await this.getAccount();
 
+		logger.info(` to is ${params.to} from is ${addressFrom}`);
+		/**
+		 * В расчетах bandwidth нет смысла, потому что сумма всегда ниже 1000
+		 * а Re:Fee не позволяет запросить меньше 1000 за один раз
+		 */
+		await this.reFee.rentResource(addressFrom, 1000, "bandwidth", "1h");
+
+		/**
+		 * Ждем поступления bandwidth
+		 * Целевая энэргия равнна 0 так
+		 * как во время транзакции она не
+		 * используется.
+		 *
+		 * isCryptoToFiat: true для
+		 * соблюдения контракта
+		 */
+		this.resource_queue.addJob(
+			{
+				id: params.id,
+				network: params.network,
+				currency: params.currency,
+				type: params.type,
+				wallet: addressFrom,
+				to: params.to,
+				balance: params.amount,
+				attempts: 1,
+				isCryptoToFiat: true,
+				targetEnergy: 0,
+				targetBandwidth: 600,
+				callback: params.callback,
+			},
+			`${params.id}-TRX`,
+			Number.parseInt(config.polling.interval, 10),
+		);
+	}
+
+	public async finishControlledTransaction(
+		params: FinishControlledTransactionParams,
+	) {
+		logger.info(`Processing TRX transaction ${params.id} second stage`);
+		const id = params.id;
+		const to = params.address;
+
+		const from = await this.getAccount();
+		const amount = params.balance;
+		logger.info(` to is ${to} from is ${from}, balance is ${amount}`);
 		try {
 			const signedTronWeb = new TronWeb({
 				fullHost: config.tron.network,
@@ -53,7 +108,22 @@ export default class TronService extends TronBasicService {
 			});
 
 			const amountInSun = signedTronWeb.toSun(amount);
-			const from = await this.getAccount();
+			const pkAddr = signedTronWeb.address.fromPrivateKey(this.privateKey);
+			const balSun = await signedTronWeb.trx.getBalance(from);
+
+			logger.info(
+				{
+					from,
+					pkAddr,
+					pkMatches: pkAddr === from,
+					balSun,
+					balTrx: signedTronWeb.fromSun(balSun),
+					amountInSun,
+					to,
+					fullHost: config.tron.network,
+				},
+				"Preflight",
+			);
 			const tx = await signedTronWeb.transactionBuilder.sendTrx(
 				to,
 				amountInSun,
@@ -61,15 +131,21 @@ export default class TronService extends TronBasicService {
 			);
 			const signedTx = await signedTronWeb.trx.sign(tx);
 			const result = await signedTronWeb.trx.sendRawTransaction(signedTx);
-
+			console.log(result);
 			return result;
 		} catch (error: any) {
-			logger.info(
+			logger.error(
 				{
-					error: error.message,
+					msg: error?.message,
+					stack: error?.stack,
+					name: error?.name,
+					code: error?.code,
+					response: error?.response?.data ?? error?.response,
+					error,
 				},
 				`Transaction ${id} failed`,
 			);
+			throw error;
 		}
 	}
 
@@ -93,9 +169,14 @@ export default class TronService extends TronBasicService {
 				return result;
 			}
 		} catch (error: any) {
-			logger.info(
+			logger.error(
 				{
-					error: error.message,
+					msg: error?.message,
+					stack: error?.stack,
+					name: error?.name,
+					code: error?.code,
+					response: error?.response?.data ?? error?.response,
+					error,
 				},
 				`Transaction ${params.id} failed`,
 			);
@@ -103,10 +184,6 @@ export default class TronService extends TronBasicService {
 	}
 
 	public async finishActivationControl() {}
-
-	public async finishControlledTransaction(
-		params: FinishControlledTransactionParams,
-	) {}
 
 	public async finishFiatToCryptoTransaction() {}
 
@@ -116,7 +193,12 @@ export default class TronService extends TronBasicService {
 		} catch (error: any) {
 			logger.error(
 				{
-					error: error.message,
+					msg: error?.message,
+					stack: error?.stack,
+					name: error?.name,
+					code: error?.code,
+					response: error?.response?.data ?? error?.response,
+					error,
 				},
 				`Failed to get balance for ${address}`,
 			);
@@ -130,5 +212,13 @@ export default class TronService extends TronBasicService {
 
 	public getContract() {
 		return "";
+	}
+
+	public isTRX() {
+		return true;
+	}
+
+	public isUSDT() {
+		return false;
 	}
 }

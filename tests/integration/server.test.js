@@ -1,3 +1,3 @@
-test('integration placeholder', () => {
+test("integration placeholder", () => {
 	expect(true).toBe(true);
 });

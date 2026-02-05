@@ -60,7 +60,7 @@ export default class NotificationWorker {
 	}
 
 	private async sendNotification(data: NotificationData) {
-        logger.info(`Sending notification to ${data.callback}`);
+		logger.info(`Sending notification to ${data.callback}`);
 		await client.post(
 			`${data.callback}/api/transactions/webhook/payments`,
 			data,

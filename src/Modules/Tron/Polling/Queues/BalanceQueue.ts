@@ -53,8 +53,7 @@ export default class BalanceQueue {
 			return false;
 		}
 
-        await job.remove();
+		await job.remove();
 		return true;
 	}
-
 }

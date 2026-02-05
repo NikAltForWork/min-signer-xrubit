@@ -32,6 +32,8 @@ export default class TronTransactionService {
 		const results = await Promise.all(
 			queues.map(async (queue) => {
 				try {
+
+					await queue.removeJob(`${id}-TRX`);
 					return await queue.removeJob(id);
 				} catch (error) {
 					logger.error(

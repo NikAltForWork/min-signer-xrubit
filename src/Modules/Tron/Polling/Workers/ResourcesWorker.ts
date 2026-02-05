@@ -51,6 +51,8 @@ export default class ResourcesWorker {
 			logger.info(
 				{
 					jobId: job?.id,
+					jobNetwork: job.data.network,
+					jobCurrency: job.data.currency,
 					attempts: job.attemptsMade,
 					action: "job_active",
 					isCryptoToFiat: job.data.isCryptoToFiat,
@@ -126,8 +128,13 @@ export default class ResourcesWorker {
 			0,
 			(res.EnergyLimit ?? 0) - (res.EnergyUsed ?? 0),
 		);
+        /**
+        * сравнение не строгое, так как иногда Re:Fee дает
+        * 64,999.96 Energy вместо 65000
+        */
+        const allowedEnergy = targetEnergy * 0.9
 
-		if (energyLeft >= targetEnergy) {
+		if (energyLeft >= allowedEnergy) {
 			// отсюда вызвать другой метод
 		} else {
 			isChecked = 0;
@@ -139,13 +146,26 @@ export default class ResourcesWorker {
 				currency,
 				type,
 			);
+			logger.info(1);
 			if (data.isCryptoToFiat === true) {
+				logger.info(`Resource check completed calling finisher for ${id}`);
+				let serviceTo = "";
+
+				if (service.isTRX()) {
+					serviceTo = to;
+				}
+
+				if (service.isUSDT()) {
+					serviceTo = wallet;
+				}
+
 				await service.finishControlledTransaction({
-					address: wallet,
+					address: serviceTo,
 					balance: balance,
 					id: id,
 				});
 			} else {
+				logger.info(2);
 				await service.finishFiatToCryptoTransaction({
 					network: network,
 					currency: currency,
@@ -157,6 +177,13 @@ export default class ResourcesWorker {
 				});
 			}
 		} else {
+			logger.info({
+				JobId: id,
+				totalBandidth: totalLeft,
+				totalEnergy: energyLeft,
+				targetBandwidth: targetBandwidth,
+				targetEnergy: targetEnergy,
+			});
 			throw new Error("AWAITING_RES");
 		}
 	}

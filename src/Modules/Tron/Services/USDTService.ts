@@ -131,7 +131,7 @@ export default class USDTService extends TronBasicService {
 	 */
 	public async finishTransaction(params: FinishTransactionParams) {
 		try {
-			logger.info(`Processing transaction - ${params.id}`);
+			logger.info(`Processing USDT transaction - ${params.id}`);
 
 			await this.createResourceControlledTransaction({
 				network: params.network,
@@ -162,7 +162,7 @@ export default class USDTService extends TronBasicService {
 		params: FinishControlledTransactionParams,
 	) {
 		try {
-			logger.info(`Processing transaction ${params.id} - Last stage`);
+			logger.info(`Processing USDT transaction ${params.id} - Last stage`);
 			const data = await this.connection.get(`wallet:${params.address}`);
 
 			if (!data) {
@@ -346,12 +346,17 @@ export default class USDTService extends TronBasicService {
 		params: CreateResourceControlledTransactionParams,
 	) {
 		try {
-			logger.info(`Processing transaction ${params.id} - First stage`);
+			logger.info(`Processing USDT transaction ${params.id} - First stage`);
 			this.activation_queue.addJob(params, params.id);
 		} catch (error: any) {
-			logger.info(
+			logger.error(
 				{
-					error: error.message,
+					msg: error?.message,
+					stack: error?.stack,
+					name: error?.name,
+					code: error?.code,
+					response: error?.response?.data ?? error?.response,
+					error,
 				},
 				`Transaction ${params.id} failed`,
 			);
@@ -364,12 +369,10 @@ export default class USDTService extends TronBasicService {
 	 */
 	public async finishActivationControl(params: FinishActivationControlParams) {
 		try {
+			logger.info(`Processing USDT transaction ${params.id} - Second stage`);
 
-			logger.info(`Processing transaction ${params.id} - Second stage`);
-			const targetBandwidth = await this.calculateBandwidth(
-				params.amount,
-				params.to,
-			);
+            let targetBandwidth = 0;
+
 			const targetEnergy = await this.reFee.calculateEnergy(params.to);
 
 			let wallet;
@@ -381,13 +384,23 @@ export default class USDTService extends TronBasicService {
 				wallet = await this.getAccount();
 			}
 
-            /**
-            * Для Крипто-Фиат транзкций используем
-            * родной bandwidth
-            */
-            if (params.isCryptoToFiat === false) {
-			    await this.reFee.rentResource(wallet, targetBandwidth, "bandwidth", "1h");
-            }
+			/**
+			 * Для Крипто-Фиат транзкций используем
+			 * родной bandwidth
+			 */
+			if (params.isCryptoToFiat === false) {
+                targetBandwidth = await this.calculateBandwidth(
+				    params.amount,
+				    params.to,
+			    );
+
+				await this.reFee.rentResource(
+					wallet,
+					targetBandwidth,
+					"bandwidth",
+					"1h",
+				);
+			}
 
 			await this.reFee.rentResource(wallet, targetEnergy, "energy", "1h");
 
@@ -410,9 +423,14 @@ export default class USDTService extends TronBasicService {
 				Number.parseInt(config.polling.interval, 10),
 			);
 		} catch (error: any) {
-			logger.info(
+			logger.error(
 				{
-					error: error.message,
+					msg: error?.message,
+					stack: error?.stack,
+					name: error?.name,
+					code: error?.code,
+					response: error?.response?.data ?? error?.response,
+					error,
 				},
 				`Transaction ${params.id} failed`,
 			);
@@ -460,5 +478,13 @@ export default class USDTService extends TronBasicService {
 
 	public getContract() {
 		return this.address;
+	}
+
+	public isTRX() {
+		return false;
+	}
+
+	public isUSDT() {
+		return true;
 	}
 }
