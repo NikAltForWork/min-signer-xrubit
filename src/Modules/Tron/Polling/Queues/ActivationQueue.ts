@@ -1,6 +1,6 @@
 import { Queue } from "bullmq";
 import config from "../../../../Core/config/config";
-import { getRedis } from "../../../../Core/redis";
+import { getRedis } from "../../../../Core/redis/redis";
 
 export interface PollingActivationData {
 	network: string;

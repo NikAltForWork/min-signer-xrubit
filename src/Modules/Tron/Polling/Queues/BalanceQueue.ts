@@ -1,6 +1,6 @@
 import { Queue } from "bullmq";
 import config from "../../../../Core/config/config";
-import { getRedis } from "../../../../Core/redis";
+import { getRedis } from "../../../../Core/redis/redis";
 
 /**
  * Данные для опроса баланса трон кошелька
@@ -14,6 +14,7 @@ export interface PollingBalanceJobData {
 	attempts: number;
 	contract?: string;
 	callback: string;
+    internalId: string;
 }
 
 /**

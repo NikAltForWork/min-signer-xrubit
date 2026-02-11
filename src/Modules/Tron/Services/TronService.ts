@@ -1,10 +1,9 @@
 import TronWeb from "tronweb";
-import TronBasicService from "../../../Core/TronBasicService";
+import TronBasicService, {
+	TronBasicDependencies,
+} from "../../../Core/basicServices//TronBasicService";
 import config from "../../../Core/config/config";
-import { logger } from "../../../Core/logger";
-import ResourcesQueue from "../Polling/Queues/ResourcesQueue";
-import BalanceQueue from "../Polling/Queues/BalanceQueue";
-import ActicationQueue from "../Polling/Queues/ActivationQueue";
+import { logger } from "../../../Core/logger/logger";
 
 interface TronSignParams {
 	network: string;
@@ -32,18 +31,15 @@ interface FinishTransactionParams {
 	callback: string;
 }
 
+export type TronServiceDependencies = TronBasicDependencies;
+
 /**
  * Сервис для рвботы с TRX;
  * Также используется для активации кошельков
  */
 export default class TronService extends TronBasicService {
-	constructor(
-		privateKey: string,
-		resource_queue: ResourcesQueue,
-		balance_queue: BalanceQueue,
-		activation_queue: ActicationQueue,
-	) {
-		super(privateKey, balance_queue, resource_queue, activation_queue);
+	constructor(dependencies: TronServiceDependencies) {
+		super(dependencies);
 	}
 
 	/**
@@ -70,22 +66,25 @@ export default class TronService extends TronBasicService {
 		 * isCryptoToFiat: true для
 		 * соблюдения контракта
 		 */
-		this.resource_queue.addJob(
-			{
-				id: params.id,
-				network: params.network,
-				currency: params.currency,
-				type: params.type,
-				wallet: addressFrom,
-				to: params.to,
-				balance: params.amount,
-				attempts: 1,
-				isCryptoToFiat: true,
-				targetEnergy: 0,
-				targetBandwidth: 600,
-				callback: params.callback,
-			},
-			`${params.id}-TRX`,
+
+        const queue_params = {
+			id: params.id,
+			network: params.network,
+			currency: params.currency,
+			type: params.type,
+			wallet: addressFrom,
+			to: params.to,
+			balance: params.amount,
+			attempts: 1,
+			isCryptoToFiat: true,
+			targetEnergy: 0,
+			targetBandwidth: 600,
+			callback: params.callback,
+		}
+
+        logger.info(queue_params);
+
+		this.resource_queue.addJob(queue_params, `${params.id}-TRX`,
 			Number.parseInt(config.polling.interval, 10),
 		);
 	}
@@ -187,9 +186,15 @@ export default class TronService extends TronBasicService {
 
 	public async finishFiatToCryptoTransaction() {}
 
+	public async getTechBalance(address: string) {
+		//TODO: add realization
+		return "0";
+	}
+
 	async getBalance(address: string) {
 		try {
-			return await this.tronWeb.trx.getBalance(address);
+			const res = await this.tronWeb.trx.getBalance(address);
+            return res / 1000000;
 		} catch (error: any) {
 			logger.error(
 				{

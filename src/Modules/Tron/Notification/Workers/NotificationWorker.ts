@@ -1,9 +1,12 @@
 import { Worker } from "bullmq";
-import { NotificationData } from "../Queues/NorificationQueue";
-import { getRedis } from "../../../../Core/redis";
-import client from "../../../../Core/client";
+import {
+	NotificationData,
+	NotificationTypes,
+} from "../Queues/NorificationQueue";
+import { getRedis } from "../../../../Core/redis/redis";
+import client from "../../../../Core/client/client";
 import config from "../../../../Core/config/config";
-import { logger } from "../../../../Core/logger";
+import { logger } from "../../../../Core/logger/logger";
 import * as crypto from "node:crypto";
 
 /**
@@ -60,11 +63,28 @@ export default class NotificationWorker {
 	}
 
 	private async sendNotification(data: NotificationData) {
-		logger.info(`Sending notification to ${data.callback}`);
-		await client.post(
-			`${data.callback}/api/transactions/webhook/payments`,
-			data,
-			{
+		logger.info(
+			{ type: data.type, callback: data.callback },
+			"sending notification",
+		);
+
+		switch (data.type) {
+			case NotificationTypes.TRANSACTION_CRYPTO_TO_FIAT_PAYMENT_RECEIVED:
+				return this.sendNotificationPayment(data);
+
+			case NotificationTypes.TRANSACTION_FIAT_TO_CRYPTO_COMPLETED:
+				return this.sendNotificationFCCompleted(data);
+
+			case NotificationTypes.TRANSACTION_CRYPTO_TO_FIAT_COMPLETED:
+				return this.sendNotificationCFCompleted(data);
+
+			default:
+				throw new Error(`unsupported notification type ${data.type}`);
+		}
+	}
+
+	private async sendNotificationCFCompleted(data: NotificationData) {
+		await client.post(`${data.callback}/api/transactions/webhook/cf/completed`, data, {
 				headers: {
 					"Content-Type": "application/json",
 					"X-Signature": await this.sign(data),
@@ -73,7 +93,26 @@ export default class NotificationWorker {
 		);
 	}
 
-	private async sign(data: any) {
+	private async sendNotificationFCCompleted(data: NotificationData) {
+		await client.post(`${data.callback}/api/transactions/webhook/fc/completed`, data, {
+			headers: {
+				"Content-Type": "application/json",
+				"X-Signature": await this.sign(data),
+			},
+		});
+	}
+
+	private async sendNotificationPayment(data: NotificationData) {
+		await client.post(`${data.callback}/api/transactions/webhook/payments`, data, {
+				headers: {
+					"Content-Type": "application/json",
+					"X-Signature": await this.sign(data),
+				},
+			},
+		);
+	}
+
+	private async sign(data: NotificationData) {
 		const body = JSON.stringify(data);
 
 		const signature = crypto

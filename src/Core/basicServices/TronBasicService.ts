@@ -1,11 +1,21 @@
 import TronWeb from "tronweb";
-import type { RedisCommander } from "ioredis";
-import { getRedis } from "./redis";
-import config from "./config/config";
-import ReFeeService from "../Modules/Tron/Services/ReFeeService";
-import BalanceQueue from "../Modules/Tron/Polling/Queues/BalanceQueue";
-import ResourcesQueue from "../Modules/Tron/Polling/Queues/ResourcesQueue";
-import ActivationQueue from "../Modules/Tron/Polling/Queues/ActivationQueue";
+import type { Redis, RedisCommander } from "ioredis";
+import config from "../config/config";
+import ReFeeService from "../../Modules/Tron/Services/ReFeeService";
+import BalanceQueue from "../../Modules/Tron/Polling/Queues/BalanceQueue";
+import ResourcesQueue from "../../Modules/Tron/Polling/Queues/ResourcesQueue";
+import ActivationQueue from "../../Modules/Tron/Polling/Queues/ActivationQueue";
+import NotificationQueue from "../../Modules/Tron/Notification/Queues/NorificationQueue";
+
+export type TronBasicDependencies = {
+	redis: Redis;
+	privateKey: string;
+	reFeeService: ReFeeService;
+	balance_queue: BalanceQueue;
+	resources_queue: ResourcesQueue;
+	activation_queue: ActivationQueue;
+    notification_queue: NotificationQueue;
+};
 
 export default class TronBasicService {
 	protected connection: RedisCommander;
@@ -16,14 +26,18 @@ export default class TronBasicService {
 	protected balance_queue: BalanceQueue;
 	protected resource_queue: ResourcesQueue;
 	protected activation_queue: ActivationQueue;
+    protected notification_queue: NotificationQueue;
 
-	constructor(
-		privateKey: string,
-		balance_queue: BalanceQueue,
-		resource_queue: ResourcesQueue,
-		activation_queue: ActivationQueue,
-	) {
-		this.connection = getRedis();
+	constructor({
+		redis,
+		privateKey,
+		reFeeService,
+		balance_queue,
+		resources_queue,
+		activation_queue,
+        notification_queue,
+	}: TronBasicDependencies) {
+		this.connection = redis;
 		this.privateKey = privateKey;
 		this.network = config.tron.network;
 		this.tronWeb = new TronWeb({
@@ -31,10 +45,11 @@ export default class TronBasicService {
 			privateKey: privateKey,
 			headers: { "TRON-PRO-API-KEY": config.tron.key },
 		});
-		this.reFee = new ReFeeService();
+		this.reFee = reFeeService;
 		this.balance_queue = balance_queue;
-		this.resource_queue = resource_queue;
+		this.resource_queue = resources_queue;
 		this.activation_queue = activation_queue;
+        this.notification_queue = notification_queue;
 	}
 
 	async createAccount() {

@@ -1,6 +1,6 @@
 import pino from "pino";
 import { LoggerOptions } from "pino";
-import config from "./config/config";
+import config from "../config/config";
 
 export const loggerOptions: LoggerOptions = {
 	level: config.logger.log_level || "info",

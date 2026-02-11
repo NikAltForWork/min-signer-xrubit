@@ -1,20 +1,22 @@
+import { container } from "../../../../Core/container/container";
 import CryptoServiceFactory from "../../../CryptoServiceFactory";
 import NotificationService from "../../Notification/NotificationService";
-import ActivationQueue from "../Queues/ActivationQueue";
-import BalanceQueue from "../Queues/BalanceQueue";
-import ResourcesQueue from "../Queues/ResourcesQueue";
 import ResourcesWorker from "../Workers/ResourcesWorker";
+//import ActivationQueue from "../Queues/ActivationQueue";
+//import BalanceQueue from "../Queues/BalanceQueue";
+//import ResourcesQueue from "../Queues/ResourcesQueue";
 
-const notificationService = new NotificationService();
-const balance_queue = new BalanceQueue();
-const resource_queue = new ResourcesQueue();
-const activation_queue = new ActivationQueue();
-const cryptoServiceFactory = new CryptoServiceFactory(
-	balance_queue,
-	resource_queue,
-	activation_queue,
+const notificationService = container.resolve<NotificationService>(
+	"notificationService",
+);
+const cryptoServiceFactory = container.resolve<CryptoServiceFactory>(
+	"cryptoServiceFactory",
 );
 
+//const balance_queue = container.resolve<BalanceQueue>("balance_queue");
+//const resource_queue = container.resolve<ResourcesQueue>("resource_queue");
+//const activation_queue = container.resolve<ActivationQueue>("activation_queue");
+//
 const resourceWorker = new ResourcesWorker(
 	notificationService,
 	cryptoServiceFactory,

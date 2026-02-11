@@ -2,9 +2,9 @@ import { Worker } from "bullmq";
 import axios from "axios";
 import { PollingActivationData } from "../Queues/ActivationQueue";
 import CryptoServiceFactory from "../../../CryptoServiceFactory";
-import { getRedis } from "../../../../Core/redis";
+import { getRedis } from "../../../../Core/redis/redis";
 import config from "../../../../Core/config/config";
-import { logger } from "../../../../Core/logger";
+import { logger } from "../../../../Core/logger/logger";
 
 export default class ActivationWorker {
 	private worker: Worker<PollingActivationData>;

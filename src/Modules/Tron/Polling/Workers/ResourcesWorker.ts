@@ -3,11 +3,11 @@ import ResourcesQueue, {
 	PollingResourcesJobData,
 } from "../Queues/ResourcesQueue";
 import config from "../../../../Core/config/config";
-import { getRedis } from "../../../../Core/redis";
+import { getRedis } from "../../../../Core/redis/redis";
 import CryptoServiceFactory from "../../../CryptoServiceFactory";
 import NotificationService from "../../Notification/NotificationService";
 import TronWeb from "tronweb";
-import { logger } from "../../../../Core/logger";
+import { logger } from "../../../../Core/logger/logger";
 
 /**
  * Worker для пуллинга ресурсов временного трон кошелька.
@@ -128,11 +128,11 @@ export default class ResourcesWorker {
 			0,
 			(res.EnergyLimit ?? 0) - (res.EnergyUsed ?? 0),
 		);
-        /**
-        * сравнение не строгое, так как иногда Re:Fee дает
-        * 64,999.96 Energy вместо 65000
-        */
-        const allowedEnergy = targetEnergy * 0.9
+		/**
+		 * сравнение не строгое, так как иногда Re:Fee дает
+		 * 64,999.96 Energy вместо 65000
+		 */
+		const allowedEnergy = targetEnergy * 0.9;
 
 		if (energyLeft >= allowedEnergy) {
 			// отсюда вызвать другой метод
@@ -163,6 +163,7 @@ export default class ResourcesWorker {
 					address: serviceTo,
 					balance: balance,
 					id: id,
+                    callback: callback,
 				});
 			} else {
 				logger.info(2);

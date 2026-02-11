@@ -3,7 +3,7 @@ import * as fs from "fs/promises";
 import * as crypto from "node:crypto";
 import type { CipherGCM } from "crypto";
 import config from "../../Core/config/config";
-import { logger } from "../../Core/logger";
+import { logger } from "../../Core/logger/logger";
 
 const key = config.keys.appKey;
 const algorithm = config.keys.algorithm;
@@ -26,7 +26,6 @@ export default class KeyService {
 				privateKey: privateKey,
 				mnemonic: mnemonic,
 			});
-			console.log(dataToEncrypt);
 			const cipher = crypto.createCipheriv(algorithm, key, iv) as CipherGCM;
 
 			let encrypted = cipher.update(dataToEncrypt, "utf8", "hex");

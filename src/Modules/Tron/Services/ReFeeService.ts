@@ -1,6 +1,6 @@
 import axios from "axios";
 import config from "../../../Core/config/config";
-import { logger } from "../../../Core/logger";
+import { logger } from "../../../Core/logger/logger";
 
 interface RentResourceResponse {
 	id: string;

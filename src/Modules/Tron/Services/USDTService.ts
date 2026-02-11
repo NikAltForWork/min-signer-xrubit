@@ -1,11 +1,11 @@
 import TronWeb from "tronweb";
 import config from "../../../Core/config/config";
-import { logger } from "../../../Core/logger";
-import TronBasicService from "../../../Core/TronBasicService";
+import { logger } from "../../../Core/logger/logger";
+import TronBasicService, {
+	type TronBasicDependencies,
+} from "../../../Core/basicServices/TronBasicService";
 import NotificationService from "../Notification/NotificationService";
-import ResourcesQueue from "../Polling/Queues/ResourcesQueue";
-import BalanceQueue from "../Polling/Queues/BalanceQueue";
-import ActivationQueue from "../Polling/Queues/ActivationQueue";
+import { NotificationTypes } from "../Notification/Queues/NorificationQueue";
 
 interface UsdtSignParams {
 	network: string;
@@ -31,6 +31,7 @@ interface FinishControlledTransactionParams {
 	address: string;
 	balance: string;
 	id: string;
+    callback?: string;
 }
 
 interface CreateResourceControlledTransactionParams {
@@ -54,22 +55,23 @@ interface FinishActivationControlParams {
 	callback: string;
 }
 
+type UsdtDependencies = TronBasicDependencies & {
+	notificationService: NotificationService;
+};
+
 /**
  * Сервис для работы с USDT в сети TRON
  * Поддерживает 2 направления - Крипто-Фиат и Фиат-Крипто.
+ * Сервер разросся слишком сильно
+ * TODO: поделить на use case
  */
 export default class USDTService extends TronBasicService {
 	public address: string;
 	private notifier: NotificationService;
-	constructor(
-		privateKey: string,
-		resource_queue: ResourcesQueue,
-		balance_queue: BalanceQueue,
-		activation_queue: ActivationQueue,
-	) {
-		super(privateKey, balance_queue, resource_queue, activation_queue);
+	constructor({ notificationService, ...basicDeps }: UsdtDependencies) {
+		super(basicDeps);
 		this.address = config.tron.usdt_contract;
-		this.notifier = new NotificationService();
+		this.notifier = notificationService;
 	}
 
 	/**
@@ -117,14 +119,19 @@ export default class USDTService extends TronBasicService {
 		);
 		const signedTx = await this.tronWeb.trx.sign(tx.transaction);
 
-		await this.tronWeb.trx.sendRawTransaction(signedTx);
+		const response = await this.tronWeb.trx.sendRawTransaction(signedTx);
 
-		await this.notifier.notifyStatus({
-			callback: callback,
-			id: id,
-			tx_id: tx.txid,
-		});
-	}
+        const txid = response?.txid ?? tx?.txid;
+
+		await this.notification_queue.addJob({
+            wallet: to,
+            internalId: id,
+            txId: txid,
+            callback: callback,
+            type: NotificationTypes.TRANSACTION_FIAT_TO_CRYPTO_COMPLETED
+        }, `${id}-NOTIFICATION`)
+
+    }
 
 	/**
 	 * метод для обработки вебхука подтверждения с backend
@@ -207,6 +214,15 @@ export default class USDTService extends TronBasicService {
 
 				await signedTronWeb.trx.sendRawTransaction(signedTx);
 
+                if(params.callback != null) {
+                    await this.notification_queue.addJob({
+                        wallet: params.address,
+                        internalId: params.id,
+                        callback: params.callback,
+                        type: NotificationTypes.TRANSACTION_CRYPTO_TO_FIAT_COMPLETED,
+                    }, `${params.id}-NOTIFICATION`);
+                }
+
 				return {
 					txid: tx.txid,
 					to: params.address,
@@ -287,6 +303,11 @@ export default class USDTService extends TronBasicService {
 		}
 	}
 
+	public async getTechBalance(address: string) {
+		//TODO: add realization
+		return "0";
+	}
+
 	public async getLastTransaction(address: string) {
 		const url = `${config.tron.network}/v1/accounts/${address}/transactions/trc20?contract_address=${this.address}`;
 		const res = await fetch(url, {
@@ -347,7 +368,7 @@ export default class USDTService extends TronBasicService {
 	) {
 		try {
 			logger.info(`Processing USDT transaction ${params.id} - First stage`);
-			this.activation_queue.addJob(params, params.id);
+			await this.activation_queue.addJob(params, params.id);
 		} catch (error: any) {
 			logger.error(
 				{
@@ -371,7 +392,7 @@ export default class USDTService extends TronBasicService {
 		try {
 			logger.info(`Processing USDT transaction ${params.id} - Second stage`);
 
-            let targetBandwidth = 0;
+			let targetBandwidth = 0;
 
 			const targetEnergy = await this.reFee.calculateEnergy(params.to);
 
@@ -389,10 +410,10 @@ export default class USDTService extends TronBasicService {
 			 * родной bandwidth
 			 */
 			if (params.isCryptoToFiat === false) {
-                targetBandwidth = await this.calculateBandwidth(
-				    params.amount,
-				    params.to,
-			    );
+				targetBandwidth = await this.calculateBandwidth(
+					params.amount,
+					params.to,
+				);
 
 				await this.reFee.rentResource(
 					wallet,
@@ -404,7 +425,7 @@ export default class USDTService extends TronBasicService {
 
 			await this.reFee.rentResource(wallet, targetEnergy, "energy", "1h");
 
-			this.resource_queue.addJob(
+			await this.resource_queue.addJob(
 				{
 					id: params.id,
 					network: params.network,

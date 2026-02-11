@@ -1,11 +1,13 @@
 import { Worker } from "bullmq";
 import { PollingBalanceJobData } from "../Queues/BalanceQueue";
-import { getRedis } from "../../../../Core/redis";
+import { getRedis } from "../../../../Core/redis/redis";
 import CryptoServiceFactory from "../../../CryptoServiceFactory";
 import NotificationService from "../../Notification/NotificationService";
 import BalanceQueue from "../Queues/BalanceQueue";
-import NotificationQueue from "../../Notification/Queues/NorificationQueue";
-import { logger } from "../../../../Core/logger";
+import NotificationQueue, {
+	NotificationTypes,
+} from "../../Notification/Queues/NorificationQueue";
+import { logger } from "../../../../Core/logger/logger";
 
 /**
  * Worker для пуллинга баланса временного трон кошелька.
@@ -84,6 +86,7 @@ export default class BalanceWorker {
 		const attempts = data.attempts;
 		const contract = data.contract;
 		const callback = data.callback;
+        const internalId = data.internalId;
 		let balance: number;
 		let txId: string;
 
@@ -104,7 +107,9 @@ export default class BalanceWorker {
 				balance: balance,
 				txId: txId,
 				contract: contract,
-			});
+                internalId: internalId,
+				type: NotificationTypes.TRANSACTION_CRYPTO_TO_FIAT_PAYMENT_RECEIVED,
+			}, internalId);
 			return;
 		}
 

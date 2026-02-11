@@ -4,20 +4,25 @@ import Fastify, {
 	type FastifyReply,
 } from "fastify";
 import * as crypto from "node:crypto";
-import { storeKeys, storeTransaction, getBalance } from "./src/Core/schemas";
+import {
+	storeKeys,
+	storeTransaction,
+	getBalance,
+} from "./src/Core/schemas/schemas";
 import config from "./src/Core/config/config";
-import client from "./src/Core/client";
-import { loggerOptions } from "./src/Core/logger";
-import { getRedis } from "./src/Core/redis";
-import NotificationService from "./src/Modules/Tron/Notification/NotificationService";
+import client from "./src/Core/client/client";
+import { loggerOptions } from "./src/Core/logger/logger";
+import { closeRedis, getRedis } from "./src/Core/redis/redis";
 import KeyService from "./src/Modules/Keys/KeyService";
-import NotificationQueue from "./src/Modules/Tron/Notification/Queues/NorificationQueue";
 import BalanceQueue from "./src/Modules/Tron/Polling/Queues/BalanceQueue";
-import ResourcesQueue from "./src/Modules/Tron/Polling/Queues/ResourcesQueue";
 import CryptoServiceFactory from "./src/Modules/CryptoServiceFactory";
-import ActivationQueue from "./src/Modules/Tron/Polling/Queues/ActivationQueue";
 import TransactionServiceFactory from "./src/Modules/TransactionServiceFactory";
-
+import { container } from "./src/Core/container/container";
+import { RedisCommander } from "ioredis";
+//import ActivationQueue from "./src/Modules/Tron/Polling/Queues/ActivationQueue";
+//import ResourcesQueue from "./src/Modules/Tron/Polling/Queues/ResourcesQueue";
+//import NotificationQueue from "./src/Modules/Tron/Notification/Queues/NorificationQueue";
+//import NotificationService from "./src/Modules/Tron/Notification/NotificationService";
 /**
  * Сервис разросся слишком сильно
  * нужно внедрить базу данных
@@ -70,6 +75,7 @@ interface RestartPolingBody {
 }
 
 interface DebugUsdtBody {
+    callback?: string;
 	address?: string;
 	wallet?: string;
 	balance?: string | number;
@@ -119,27 +125,52 @@ interface BasicResponse {
 	data?: any;
 }
 
-const keyService = new KeyService();
-const notificationService = new NotificationService();
-const balance_queue = new BalanceQueue();
-const resource_queue = new ResourcesQueue();
-const notification_queue = new NotificationQueue();
-const activation_queue = new ActivationQueue();
+const keyService = container.resolve<KeyService>("keyService");
+const balance_queue = container.resolve<BalanceQueue>("balance_queue");
 
-const transactionServiceFactory = new TransactionServiceFactory(
-	balance_queue,
-	resource_queue,
-	activation_queue,
+/**
+const notificationService = container.resolve<NotificationService>(
+	"notificationService",
+);
+const resource_queue = container.resolve<ResourcesQueue>("resources_queue");
+const notification_queue =
+	container.resolve<NotificationQueue>("notification_queue");
+const activation_queue = container.resolve<ActivationQueue>("activation_queue");
+*/
+
+const transactionServiceFactory = container.resolve<TransactionServiceFactory>(
+	"transactionServiceFactory",
+);
+const cryptoServiceFactory = container.resolve<CryptoServiceFactory>(
+	"cryptoServiceFactory",
 );
 
-const cryptoServiceFactory = new CryptoServiceFactory(
-	balance_queue,
-	resource_queue,
-	activation_queue,
-);
 const fastify: FastifyInstance = Fastify({
 	logger: loggerOptions,
 });
+
+fastify.addHook("onClose", async () => {
+	try {
+		await closeRedis();
+	} catch (err) {
+		// swallow errors during shutdown
+	}
+});
+
+async function shutdown(signal: string) {
+	try {
+		console.log(`Received ${signal}, shutting down...`);
+		await fastify.close();
+		console.log("Shutdown complete");
+		process.exit(0);
+	} catch (err) {
+		console.error("Error during shutdown:", err);
+		process.exit(1);
+	}
+}
+
+process.on("SIGINT", () => shutdown("SIGINT"));
+process.on("SIGTERM", () => shutdown("SIGTERM"));
 
 // Middleware для проверки подписи
 fastify.addHook(
@@ -157,7 +188,12 @@ fastify.addHook(
 		}>,
 		reply: FastifyReply,
 	) => {
+
 		if (request.routeOptions.url === "/ping") {
+			return;
+		}
+
+        if (request.routeOptions.url === "/accounts/debug/polling/:network/:currency/:type") {
 			return;
 		}
 
@@ -270,6 +306,7 @@ fastify.post<{
 			const wallet = await service.createAccount();
 
 			const connection = getRedis();
+
 			const data = JSON.stringify(wallet);
 			const ttl = config.polling.keyTtl;
 			await connection.set(
@@ -290,6 +327,7 @@ fastify.post<{
 					attempts: 1,
 					contract: service.getContract(),
 					callback: request.body.callback,
+                    internalId: request.body.id,
 				},
 				request.body.id,
 			);
@@ -388,11 +426,23 @@ fastify.get<{
 	): Promise<CreateAccountResponse> => {
 		try {
 			const { network, currency, type } = request.params;
-			const service = await cryptoServiceFactory.createCryptoService(
-				network,
-				currency,
-				type,
-			);
+
+            let service;
+
+            if(type === "tech" && network === "TRC20") {
+                service = await cryptoServiceFactory.createCryptoService(
+                        network,
+                        "TRX",
+                        'tech',
+                    )
+            } else {
+			    service = await cryptoServiceFactory.createCryptoService(
+				    network,
+				    currency,
+				    type,
+			    );
+            }
+
 			const response = await service.getAccount();
 
 			return {
@@ -449,8 +499,12 @@ fastify.post<{
 
 		const id = request.params.id;
 
-		const service =
+
+
+		const getService =
 			await transactionServiceFactory.createTransactionService(network);
+
+		const service = getService();
 
 		await service.cancelTransaction(id);
 
@@ -481,20 +535,44 @@ fastify.post<{
 				};
 			}
 
-			const service = await cryptoServiceFactory.createCryptoService(
-				network,
-				currency,
-				type,
-			);
-			const result = await service.createAndSignTransfer({
-				network: network,
-				currency: currency,
-				type: type,
-				to: address,
-				amount: amount,
-				id: id,
-				callback: callback,
-			});
+            let service;
+            let result;
+
+            if(type == "tech") {
+                service = await cryptoServiceFactory.createCryptoService(
+                    "TRC20",
+                    "TRX",
+                    "tech"
+                );
+
+                result = await service.createAndSignTransfer({
+				    network: "TRC20",
+				    currency: "TRX",
+				    type: "tech",
+				    to: address,
+				    amount: amount,
+				    id: id,
+				    callback: callback,
+			    });
+
+            } else {
+			    service = await cryptoServiceFactory.createCryptoService(
+				    network,
+				    currency,
+				    type,
+			    );
+
+                result = await service.createAndSignTransfer({
+				    network: network,
+				    currency: currency,
+				    type: type,
+				    to: address,
+				    amount: amount,
+				    id: id,
+				    callback: callback,
+			    });
+            }
+
 
 			return {
 				success: true,
@@ -572,12 +650,22 @@ fastify.post<{
 			const { address } = request.body;
 			const { network, currency, type } = request.params;
 
-			const service = await cryptoServiceFactory.createCryptoService(
-				network,
-				currency,
-				type,
-			);
-			const result = await service.getBalance(address);
+            let service;
+            if(type === "tech" && network === "TRC20") {
+                service = await cryptoServiceFactory.createCryptoService(
+                    'TRC20',
+                    'TRX',
+                    'tech',
+                );
+            } else {
+			    service = await cryptoServiceFactory.createCryptoService(
+				    network,
+				    currency,
+				    type,
+                );
+             }
+
+			let result = await service.getBalance(address);
 
 			return {
 				success: true,
@@ -650,7 +738,7 @@ fastify.post<{
 		reply: FastifyReply,
 	): Promise<BasicResponse> => {
 		try {
-			const { wallet, balance, txId } = request.body;
+			const { wallet, balance, txId, callback } = request.body;
 
 			if (!wallet || balance === undefined || !txId) {
 				reply.code(400);
@@ -664,6 +752,7 @@ fastify.post<{
 				wallet,
 				balance,
 				txId,
+                contract: config.tron.usdt_contract,
 			});
 
 			const signature = crypto
@@ -672,7 +761,7 @@ fastify.post<{
 				.digest("hex");
 
 			const response = await client.post(
-				"/api/transactions/webhook/payments",
+				`${callback}/api/transactions/webhook/payments`,
 				body,
 				{
 					headers: {
@@ -709,7 +798,7 @@ fastify.post<{
 			const { network, currency, type } = request.params;
 			const { wallet, amount, callback, id } = request.body;
 
-			balance_queue.addJob(
+			await balance_queue.addJob(
 				{
 					network: network,
 					currency: currency,
@@ -718,6 +807,7 @@ fastify.post<{
 					targetAmount: amount,
 					attempts: 1,
 					callback: callback,
+                    internalId: id,
 				},
 				id,
 			);

@@ -1,6 +1,6 @@
-import client from "../../../Core/client";
+import client from "../../../Core/client/client";
 import config from "../../../Core/config/config";
-import { logger } from "../../../Core/logger";
+import { logger } from "../../../Core/logger/logger";
 import * as crypto from "node:crypto";
 
 interface NotificationLogData {

@@ -1,30 +1,36 @@
 import ActivationQueue from "../Polling/Queues/ActivationQueue";
 import BalanceQueue from "../Polling/Queues/BalanceQueue";
 import ResourcesQueue from "../Polling/Queues/ResourcesQueue";
-import { logger } from "../../../Core/logger";
+import { logger } from "../../../Core/logger/logger";
+
+export type TronTransactionServiceDependencies = {
+	resources_queue: ResourcesQueue;
+	balance_queue: BalanceQueue;
+	activation_queue: ActivationQueue;
+};
 
 /**
  * Сервис для контроля жизненного цикла
  * транзакции внутри сервиса
  */
 export default class TronTransactionService {
-	private resource_queue: ResourcesQueue;
+	private resources_queue: ResourcesQueue;
 	private balance_queue: BalanceQueue;
 	private activation_queue: ActivationQueue;
 
-	constructor(
-		resource_queue: ResourcesQueue,
-		balance_queue: BalanceQueue,
-		activation_queue: ActivationQueue,
-	) {
-		this.resource_queue = resource_queue;
+	constructor({
+		resources_queue,
+		balance_queue,
+		activation_queue,
+	}: TronTransactionServiceDependencies) {
+		this.resources_queue = resources_queue;
 		this.balance_queue = balance_queue;
 		this.activation_queue = activation_queue;
 	}
 
 	public async cancelTransaction(id: string) {
 		const queues = [
-			this.resource_queue,
+			this.resources_queue,
 			this.balance_queue,
 			this.activation_queue,
 		];
@@ -32,7 +38,6 @@ export default class TronTransactionService {
 		const results = await Promise.all(
 			queues.map(async (queue) => {
 				try {
-
 					await queue.removeJob(`${id}-TRX`);
 					return await queue.removeJob(id);
 				} catch (error) {

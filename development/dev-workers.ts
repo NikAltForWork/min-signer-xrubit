@@ -8,17 +8,20 @@ import BalanceQueue from "../src/Modules/Tron/Polling/Queues/BalanceQueue";
 import ResourcesQueue from "../src/Modules/Tron/Polling/Queues/ResourcesQueue";
 import CryptoServiceFactory from "../src/Modules/CryptoServiceFactory";
 import ActivationQueue from "../src/Modules/Tron/Polling/Queues/ActivationQueue";
+import { container } from "../src/Core/container/container";
 
-const balance_queue = new BalanceQueue();
-const resource_queue = new ResourcesQueue();
-const activation_queue = new ActivationQueue();
-const notification_queue = new NotificationQueue();
-const notificationService = new NotificationService();
-const cryptoServiceFactory = new CryptoServiceFactory(
-	balance_queue,
-	resource_queue,
-	activation_queue,
+const balance_queue = container.resolve<BalanceQueue>("balance_queue");
+const resource_queue = container.resolve<ResourcesQueue>("resources_queue");
+const activation_queue = container.resolve<ActivationQueue>("activation_queue");
+const notification_queue =
+	container.resolve<NotificationQueue>("notification_queue");
+const notificationService = container.resolve<NotificationService>(
+	"notificationService",
 );
+const cryptoServiceFactory = container.resolve<CryptoServiceFactory>(
+	"cryptoServiceFactory",
+);
+
 const balanceWorker = new BalanceWorker(
 	balance_queue,
 	notification_queue,
